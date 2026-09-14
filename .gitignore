@@ -6,9 +6,19 @@ venv/
 .env
 .DS_Store
 
-# Downloaded and derived data. Everything here is reproducible with
-# `python -m scripts.build_data`, so none of it belongs in the repository.
+# Downloaded and derived data, none of which belongs in the repository.
 project/data/
+
+# Except the experiment itself. The evaluation set cannot be rebuilt without the
+# SEC filing corpus the item bank was drawn from, and the run outputs are the
+# evidence for the result rather than a cache of it. Nine megabytes buys someone
+# the ability to re-score the numbers without a GPU.
+!project/data/processed/cardinality_docs.json
+!project/data/processed/cardinality_bank_screened.parquet
+!project/data/processed/decoding_runs/
+!project/data/processed/decoding_runs/**
+!project/data/processed/cardinality_runs/
+!project/data/processed/cardinality_runs/**
 *.parquet
 
 # Run outputs. docs/index.html is generated from these and is committed;
