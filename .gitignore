@@ -1,0 +1,36 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+.env
+.DS_Store
+
+# Downloaded and derived data. Everything here is reproducible with
+# `python -m scripts.build_data`, so none of it belongs in the repository.
+project/data/
+*.parquet
+
+# Run outputs. docs/index.html is generated from these and is committed;
+# the runs themselves are not.
+project/reports/
+logs/
+
+# advisor web app
+advisor/web/node_modules/
+advisor/web/.next/
+advisor/web/.vercel/
+advisor/web/*.tsbuildinfo
+advisor/web/next-env.d.ts
+
+# Generated dataset export; rebuild with 'make dataset'
+project/dist/
+
+# LaTeX build products
+paper/*.aux
+paper/*.log
+paper/*.out
+paper/*.fls
+paper/*.fdb_latexmk
+paper/arxiv/
+paper/*-arxiv.tar.gz
