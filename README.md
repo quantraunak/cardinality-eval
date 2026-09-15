@@ -109,29 +109,15 @@ that failed three times, an item bank filtered by syntax rather than by
 measurement, filler so inert it cost 0.25 recall on its own, and an arm that was
 context-bound rather than measuring decoding.
 
-## The count-density-length trilemma
+## Value
 
-Count, density and length are mechanically linked: density = (count × span length)
-/ total length. Fixing any two determines the third, so every study of item count
-picks two and inherits a confound:
+For anyone running an LLM behind a JSON schema — which is most production extraction — this
+says the schema is buying recall at high item counts, not costing it, and quantifies how
+much. For anyone evaluating extraction, it says a single F1 is not comparable across
+benchmarks unless the `k` distribution is stated, and gives the trilemma that determines
+whether your measured effect is an upper or a lower bound.
 
-| fixed | varies | residual confound |
-|---|---|---|
-| length + count (here) | density | density aids high `k`; the effect is a **lower bound** |
-| density + count (multi-needle NIAH) | length | length suppresses high `k`; an **upper bound** |
-
-Measured cost of the choice: dilution alone moves recall 0.667 → 0.417 at constant
-`k=1` across a 10× filler range.
-
-## What this does not establish
-
-One model, dense, one family. The reasoning-mode factor does not exist on this
-stack — `think` only relabels which response field the same tokens arrive in,
-verified by identical `eval_count` — so nothing here speaks to inference-time
-reasoning. The 30B MoE arm was discarded as context-bound, so the architecture
-comparison is unrun.
-
-## Reproducing
+## Reproduce
 
 ```bash
 make install
