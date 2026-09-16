@@ -67,15 +67,15 @@ The distinction matters because the two candidate explanations make opposite
 predictions. If degradation is a property of the model's attention over a long
 list of targets, a grammar should not help. If it is a property of the model
 choosing when to stop, a grammar that rejects incomplete output should help a
-great deal. We find the second.
+great deal. The data support the second.
 
 \paragraph{Contributions.} We fix $k$, the number of items to emit, as an
 evaluation axis and hold input length constant by constructing documents rather
-than annotating them, which makes $k$ exact and the gold set free. We report a
-slope rather than an existence claim. We show the effect is present under
+than annotating them, which makes $k$ exact and the gold set free. The result is
+reported as a slope, not an existence claim: the effect is present under
 unconstrained decoding and absent under a schema, inverting the expectation that
-grammars cost accuracy. And we state the constraint that any study on this axis
-inherits: count, density and length are mechanically linked, so fixing two
+grammars cost accuracy. A constraint that any study on this axis inherits is made
+explicit. Count, density and length are mechanically linked, so fixing two
 determines the third and decides the direction of the residual bias.
 
 \section{Constructing documents with known $k$}
@@ -92,8 +92,8 @@ containing a capitalised run removed, so it cannot carry a legitimate item. A
 document is $k$ item sentences injected at uniformly random positions into
 filler, padded to a constant 9{,}000 characters. Gold is the injected set.
 
-Three properties follow. $k$ is exact. Input length is constant by construction
-rather than merely uncorrelated. And position is averaged over rather than
+Three properties follow: $k$ is exact, input length is constant by construction
+rather than merely uncorrelated, and position is averaged over rather than
 confounded with $k$.
 
 \paragraph{The item bank is screened by measurement, not by rule.} Three
@@ -169,8 +169,7 @@ as a recall failure and confound the arm under test.
 attempt used a 30B mixture-of-experts model, which writes 7{,}000 to 12{,}000
 tokens unconstrained against an 8{,}192-token window. Four of six $k = 16$
 documents truncated mid-array, parsed to zero items, and would have reported
-constrained decoding as hugely superior at exactly the level that decides the
-study. That arm was discarded rather than repaired. In the reported runs, zero
+constrained decoding as hugely superior at the level that decides the study. That arm was discarded rather than repaired. In the reported runs, zero
 documents truncate and the maximum generation is 686 tokens.
 
 \section{Results}
@@ -229,20 +228,20 @@ regime. The reasoning-mode flag on this stack changes only which response field
 the same tokens arrive in, verified by identical evaluation counts, so this work
 says nothing about inference-time reasoning. The item bank is drawn from a single
 domain and screened by one extractor, so absolute recall levels are not
-comparable across corpora --- the slope is the estimand. The $k = 1$ arm is
+comparable across corpora. The slope is the estimand. The $k = 1$ arm is
 underpowered by the study's own arithmetic.
 
 \section{Conclusion}
 
-The grammar is not the cost. On the axis of how many items a model must emit,
-schema-constrained decoding is the only thing holding recall flat, and removing
-it produces a decline that clears a pre-registered threshold. The mechanism is a
+On the axis of how many items a model must emit, the grammar is not what costs
+recall. Schema-constrained decoding holds recall flat across $k$, and removing it
+produces a decline that clears a pre-registered threshold. The mechanism is a
 stopping decision rather than a retrieval failure, which is why removing the
 decision fixes it.
 
 For practitioners the implication is direct: free-form generation with post-hoc
 parsing, often proposed as an escape from grammar masking, trades away recall on
-exactly the long-list cases where extraction is most valuable, and saves nothing.
+the long-list cases where extraction is most valuable, and saves nothing.
 For evaluation, a single $F_1$ over a benchmark whose $k$ distribution is
 unstated is not comparable across benchmarks, because it averages over a mix
 nobody reported.
@@ -264,11 +263,6 @@ S.~Geng et~al.
 \newblock JSONSchemaBench: A rigorous benchmark of structured outputs for
   language models.
 \newblock arXiv:2501.10868, 2025.
-
-\bibitem[Chen et~al.(1998)]{metamorphic}
-T.~Y. Chen, S.~C. Cheung, and S.~M. Yiu.
-\newblock Metamorphic testing: a new approach for generating next test cases.
-\newblock Technical report HKUST-CS98-01, 1998.
 
 \end{thebibliography}
 
