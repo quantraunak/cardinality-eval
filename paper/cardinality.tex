@@ -1,0 +1,275 @@
+\documentclass[11pt]{article}
+
+\usepackage[margin=1.15in]{geometry}
+\usepackage{amsmath,amssymb}
+\usepackage{booktabs}
+\usepackage{graphicx}
+\usepackage{caption}
+\usepackage{microtype}
+\usepackage[hidelinks]{hyperref}
+\usepackage{enumitem}
+\usepackage[numbers]{natbib}
+
+\captionsetup{font=small, labelfont=bf, skip=8pt}
+\setlist{itemsep=2pt, topsep=4pt}
+\newcommand{\code}[1]{\texttt{\small #1}}
+
+\title{\bfseries Constrained Decoding Prevents Cardinality Degradation\\[2pt]
+in Structured Extraction}
+
+\author{Raunak Sood\\
+\normalsize University of Southern California\\
+\normalsize \texttt{raunakso@usc.edu}}
+
+\date{September 2026}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+\noindent
+Schema-constrained decoding is widely believed to cost accuracy, because forcing
+output through a grammar masks tokens the model would otherwise emit. We measure
+that cost along an axis it has not been measured on: the number of items the
+model must produce. Holding input length constant by construction, we build
+documents containing exactly $k$ verbatim-validated sentences, each naming one
+entity, and vary $k$ from 1 to 16. Extraction recall declines in $k$ under
+unconstrained decoding, by 0.214 from $k \le 3$ to $k \ge 16$ (Spearman
+$-0.293$, $p = 0.011$), and does not decline at all under a JSON schema
+($-0.114$, i.e.\ recall rises; $p = 0.73$). Paired on the same 75 documents per
+arm, unconstrained decoding leads by 0.200 at $k = 1$ and trails by 0.128 at
+$k = 16$ ($p = 0.005$). The mechanism is visible in emission counts: at $k = 16$
+the constrained arm emits 9.4 of 16 available items and the unconstrained arm
+7.2, at equal precision. Free to choose when to stop, the model stops early, and
+stops earlier as the list lengthens; a schema removes that choice because a
+partially filled array does not parse. We also show that item count, item
+density and document length cannot be held fixed simultaneously, which
+determines whether any measurement on this axis is an upper or a lower bound.
+\end{abstract}
+
+\section{Introduction}
+
+Ask a language model for a list and it will sometimes give you a shorter one than
+the document supports. Whether that tendency worsens as the list grows is an
+empirical question with a measurable answer, and it has not been measured in the
+setting where it matters most for production systems: structured extraction under
+a schema.
+
+Two literatures bracket the question without answering it. Long-context work
+measures how retrieval degrades with input length and with the position of the
+evidence, and multi-needle variants report that retrieval falls as the number of
+inserted facts rises~\citep{multineedle}. Structured-output work measures the cost
+of constrained decoding on validity and on accuracy, and reports real
+losses~\citep{jsonschemabench}. Neither varies the number of items to emit while
+holding input length fixed, and neither compares decoding regimes on that axis.
+
+The distinction matters because the two candidate explanations make opposite
+predictions. If degradation is a property of the model's attention over a long
+list of targets, a grammar should not help. If it is a property of the model
+choosing when to stop, a grammar that rejects incomplete output should help a
+great deal. We find the second.
+
+\paragraph{Contributions.} We fix $k$, the number of items to emit, as an
+evaluation axis and hold input length constant by constructing documents rather
+than annotating them, which makes $k$ exact and the gold set free. We report a
+slope rather than an existence claim. We show the effect is present under
+unconstrained decoding and absent under a schema, inverting the expectation that
+grammars cost accuracy. And we state the constraint that any study on this axis
+inherits: count, density and length are mechanically linked, so fixing two
+determines the third and decides the direction of the residual bias.
+
+\section{Constructing documents with known $k$}
+
+Annotation is the obvious approach and the wrong one. If $k$ is a property of
+whichever documents happened to be sampled and a human must recover it, $k$ is
+measured with error that correlates with the outcome, since an annotator's
+attention flags on exactly the long enumerations where the effect should live.
+
+We construct instead. The item bank is drawn from SEC 10-K filings: sentences
+each naming exactly one organisation, each verified to appear verbatim in its
+source document. Filler is drawn from the same corpus with every sentence
+containing a capitalised run removed, so it cannot carry a legitimate item. A
+document is $k$ item sentences injected at uniformly random positions into
+filler, padded to a constant 9{,}000 characters. Gold is the injected set.
+
+Three properties follow. $k$ is exact. Input length is constant by construction
+rather than merely uncorrelated. And position is averaged over rather than
+confounded with $k$.
+
+\paragraph{The item bank is screened by measurement, not by rule.} Three
+syntactic filters for ``which sentences transplant into a synthetic document''
+were tried and all three failed, leaving recall at $k = 1$ far below any usable
+baseline. The bank is therefore defined empirically: a candidate sentence is
+retained only if the extractor recovers it at $k = 1$ in a short document. 143
+of 240 candidates survive.
+
+\paragraph{A validity gate.} Before any slope is fitted, recall at $k = 1$ must
+clear 0.80 for a cell to be interpretable: one item, one document, a sentence the
+extractor itself produced in the wild. This gate failed three times during
+construction, and each failure was informative. The decisive diagnosis came from
+holding the item and $k$ fixed and varying only the filler:
+
+\begin{center}
+\small
+\begin{tabular}{lc}
+\toprule
+filler & recall at $k=1$ \\
+\midrule
+1{,}500 characters & 0.667 \\
+4{,}000 characters & 0.583 \\
+14{,}000 characters & 0.417 \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+Dilution alone is worth 0.25 recall. The filler had been selected \emph{for
+containing no entity names}, which made it far more inert than any real prompt,
+where a passage selector retains only relationship-dense text. Document length
+was reduced accordingly.
+
+\section{The count--density--length trilemma}
+
+The dilution measurement exposes a constraint that binds every study of this
+axis. Item density is mechanically determined by the other two quantities:
+$\text{density} = (k \times \text{span length}) / \text{document length}$. Fixing
+any two fixes the third.
+
+\begin{center}
+\small
+\begin{tabular}{lll}
+\toprule
+Held fixed & Varies & Residual confound \\
+\midrule
+length and count (this work) & density & density aids high $k$; effect is a \textbf{lower bound} \\
+density and count & length & length suppresses high $k$; an \textbf{upper bound} \\
+length and density & --- & $k$ cannot vary \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+We hold length fixed, so item density rises with $k$: a $k = 16$ document is
+denser in items than a $k = 1$ document of the same length. Since dilution
+demonstrably suppresses recall, high-$k$ documents receive a density advantage
+that works against the hypothesis. Our estimate is therefore conservative.
+
+\section{Design and pre-registration}
+
+The hypothesis, estimator and rejection rule were fixed before any cell was run.
+Rejection requires \emph{both} a recall drop of at least 0.15 from $k \le 3$ to
+$k \ge 16$ \emph{and} $p < 0.05$ on the rank test. Bucket means are for display;
+estimation is per document.
+
+Both arms use \code{qwen3:14b} at temperature 0 with a 32{,}768-token context and
+a 24{,}000-token generation ceiling, on 75 matched documents each at
+$k \in \{1, 4, 16\}$, 25 per level. The unconstrained arm is prompted for JSON and
+parsed post hoc, with a deliberately tolerant parser: a parse failure would score
+as a recall failure and confound the arm under test.
+
+\paragraph{The ceiling control matters and is easy to get wrong.} An earlier
+attempt used a 30B mixture-of-experts model, which writes 7{,}000 to 12{,}000
+tokens unconstrained against an 8{,}192-token window. Four of six $k = 16$
+documents truncated mid-array, parsed to zero items, and would have reported
+constrained decoding as hugely superior at exactly the level that decides the
+study. That arm was discarded rather than repaired. In the reported runs, zero
+documents truncate and the maximum generation is 686 tokens.
+
+\section{Results}
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=\textwidth]{figures/cardinality.pdf}
+\caption{(a) Recall against item count for both decoding regimes, 75 matched
+documents per arm, error bars one standard error. The arms cross between $k=1$
+and $k=4$. (b) Items emitted against items available. The constrained arm tracks
+availability more closely as $k$ grows; the unconstrained arm falls away.}
+\label{fig:main}
+\end{figure}
+
+\begin{table}[h]
+\centering
+\small
+\begin{tabular}{lrrrr}
+\toprule
+$k$ & constrained & unconstrained & paired difference & $p$ \\
+\midrule
+1 & 0.440 & 0.640 & $+0.200$ & 0.096 \\
+4 & 0.640 & 0.530 & $-0.110$ & 0.110 \\
+16 & 0.554 & 0.426 & $\mathbf{-0.128}$ & $\mathbf{0.005}$ \\
+\bottomrule
+\end{tabular}
+\caption{Recall by item count and decoding regime, paired on identical documents.}
+\label{tab:main}
+\end{table}
+
+The pre-registered test rejects for one arm and not the other. Unconstrained
+decoding drops $0.214$ from $k \le 3$ to $k \ge 16$ with Spearman $-0.293$,
+$p = 0.011$, satisfying both conditions. Constrained decoding drops $-0.114$,
+meaning recall rises, with Spearman $+0.041$, $p = 0.73$, satisfying neither.
+
+The $k = 1$ comparison favours unconstrained decoding by 0.200 at $p = 0.096$.
+Per-document recall at $k = 1$ is close to a Bernoulli draw, and the variance
+arithmetic implies 106 documents are needed to detect a 0.15 difference at 80\%
+power against the 25 run. We report it and do not interpret it.
+
+\paragraph{Mechanism.} At $k = 16$ the constrained arm emits 9.4 of 16 available
+items and the unconstrained arm 7.2, at precision 0.946 and 0.948 respectively.
+The difference is not a precision--recall trade: the unconstrained arm simply
+produces fewer items, and produces relatively fewer as the list lengthens. A
+schema makes an incomplete array unparseable, so generation continues past the
+point where the model would otherwise stop.
+
+\paragraph{Cost.} Unconstrained decoding is not cheaper. It costs $1.1\times$ the
+tokens at $k = 1$ and $0.7\times$ at $k = 16$: on this model it is both less
+accurate at high $k$ and no less expensive.
+
+\section{Scope conditions}
+
+One model, dense, one family; nothing here separates architecture from decoding
+regime. The reasoning-mode flag on this stack changes only which response field
+the same tokens arrive in, verified by identical evaluation counts, so this work
+says nothing about inference-time reasoning. The item bank is drawn from a single
+domain and screened by one extractor, so absolute recall levels are not
+comparable across corpora --- the slope is the estimand. The $k = 1$ arm is
+underpowered by the study's own arithmetic.
+
+\section{Conclusion}
+
+The grammar is not the cost. On the axis of how many items a model must emit,
+schema-constrained decoding is the only thing holding recall flat, and removing
+it produces a decline that clears a pre-registered threshold. The mechanism is a
+stopping decision rather than a retrieval failure, which is why removing the
+decision fixes it.
+
+For practitioners the implication is direct: free-form generation with post-hoc
+parsing, often proposed as an escape from grammar masking, trades away recall on
+exactly the long-list cases where extraction is most valuable, and saves nothing.
+For evaluation, a single $F_1$ over a benchmark whose $k$ distribution is
+unstated is not comparable across benchmarks, because it averages over a mix
+nobody reported.
+
+\paragraph{Reproduction.} Code, pre-registration, the constructed evaluation set
+and all 450 raw model responses are released at
+\url{https://github.com/quantraunak/cardinality-eval}. The reported result
+re-scores without a GPU.
+
+\begin{thebibliography}{9}
+
+\bibitem[LangChain(2024)]{multineedle}
+LangChain.
+\newblock Multi needle in a haystack.
+\newblock \url{https://www.langchain.com/blog/multi-needle-in-a-haystack}, 2024.
+
+\bibitem[Geng et~al.(2025)]{jsonschemabench}
+S.~Geng et~al.
+\newblock JSONSchemaBench: A rigorous benchmark of structured outputs for
+  language models.
+\newblock arXiv:2501.10868, 2025.
+
+\bibitem[Chen et~al.(1998)]{metamorphic}
+T.~Y. Chen, S.~C. Cheung, and S.~M. Yiu.
+\newblock Metamorphic testing: a new approach for generating next test cases.
+\newblock Technical report HKUST-CS98-01, 1998.
+
+\end{thebibliography}
+
+\end{document}
