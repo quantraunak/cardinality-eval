@@ -57,11 +57,21 @@ a schema.
 
 Two literatures bracket the question without answering it. Long-context work
 measures how retrieval degrades with input length and with the position of the
-evidence, and multi-needle variants report that retrieval falls as the number of
-inserted facts rises~\citep{multineedle}. Structured-output work measures the cost
-of constrained decoding on validity and on accuracy, and reports real
-losses~\citep{jsonschemabench}. Neither varies the number of items to emit while
-holding input length fixed, and neither compares decoding regimes on that axis.
+evidence~\citep{lostinmiddle,ruler,contextrot}, and multi-evidence variants
+report that retrieval falls as the number of inserted facts
+rises~\citep{multineedle,countingstars}. Long-list extraction is recognised as
+hard enough to need retrieval augmentation and a pruning
+stage~\citep{recallthemall}, and extraction benchmarks report performance
+falling as schemas widen~\citep{extractbench}. Structured-output work measures
+the cost of constrained decoding. The grammar masks tokens the model would
+otherwise emit~\citep{outlines}; reported accuracy losses of several points on
+reasoning tasks~\citep{letmespeak} are contested as artefacts of prompt
+mismatch~\citep{saywhatyoumean} or of vocabulary
+misalignment~\citep{domino}; grammar constraints help on structured NLP tasks
+without finetuning~\citep{gcd2023}; and a benchmark over ten thousand schemas
+measures validity, coverage and efficiency~\citep{jsonschemabench}. None of
+these varies the number of items to emit while holding input length fixed, and
+none compares decoding regimes on that axis.
 
 The distinction matters because the two candidate explanations make opposite
 predictions. If degradation is a property of the model's attention over a long
@@ -240,7 +250,7 @@ stopping decision rather than a retrieval failure, which is why removing the
 decision fixes it.
 
 For practitioners the implication is direct: free-form generation with post-hoc
-parsing, often proposed as an escape from grammar masking, trades away recall on
+parsing, often proposed as an escape from grammar masking~\citep{letmespeak}, trades away recall on
 the long-list cases where extraction is most valuable, and saves nothing.
 For evaluation, a single $F_1$ over a benchmark whose $k$ distribution is
 unstated is not comparable across benchmarks, because it averages over a mix
@@ -251,18 +261,83 @@ and all 450 raw model responses are released at
 \url{https://github.com/quantraunak/cardinality-eval}. The reported result
 re-scores without a GPU.
 
-\begin{thebibliography}{9}
+\begin{thebibliography}{99}
+
+\bibitem[Beurer-Kellner et~al.(2024)]{domino}
+L.~Beurer-Kellner, M.~Fischer, and M.~Vechev.
+\newblock Guiding LLMs the right way: Fast, non-invasive constrained generation.
+\newblock In \emph{ICML}, 2024. arXiv:2403.06988.
+
+\bibitem[Ferguson et~al.(2026)]{extractbench}
+N.~Ferguson, J.~Pennington, N.~Beghian, A.~Mohan, D.~Kiela, S.~Agrawal, and
+  T.~H. Nguyen.
+\newblock ExtractBench: A benchmark and evaluation methodology for complex
+  structured extraction.
+\newblock arXiv:2602.12247, 2026.
+
+\bibitem[Geng et~al.(2023)]{gcd2023}
+S.~Geng, M.~Josifoski, M.~Peyrard, and R.~West.
+\newblock Grammar-constrained decoding for structured NLP tasks without
+  finetuning.
+\newblock In \emph{EMNLP}, 2023. arXiv:2305.13971.
+
+\bibitem[Geng et~al.(2025)]{jsonschemabench}
+S.~Geng et~al.
+\newblock Generating structured outputs from language models: Benchmark and
+  studies.
+\newblock arXiv:2501.10868, 2025.
+
+\bibitem[Hong et~al.(2025)]{contextrot}
+K.~Hong, A.~Troynikov, and J.~Huber.
+\newblock Context rot: How increasing input tokens impacts LLM performance.
+\newblock Chroma technical report,
+  \url{https://www.trychroma.com/research/context-rot}, 2025.
+
+\bibitem[Hsieh et~al.(2024)]{ruler}
+C.-P. Hsieh et~al.
+\newblock RULER: What's the real context size of your long-context language
+  models?
+\newblock arXiv:2404.06654, 2024.
 
 \bibitem[LangChain(2024)]{multineedle}
 LangChain.
 \newblock Multi needle in a haystack.
 \newblock \url{https://www.langchain.com/blog/multi-needle-in-a-haystack}, 2024.
 
-\bibitem[Geng et~al.(2025)]{jsonschemabench}
-S.~Geng et~al.
-\newblock JSONSchemaBench: A rigorous benchmark of structured outputs for
-  language models.
-\newblock arXiv:2501.10868, 2025.
+\bibitem[Liu et~al.(2024)]{lostinmiddle}
+N.~F. Liu, K.~Lin, J.~Hewitt, A.~Paranjape, M.~Bevilacqua, F.~Petroni, and
+  P.~Liang.
+\newblock Lost in the middle: How language models use long contexts.
+\newblock \emph{Transactions of the Association for Computational Linguistics},
+  12:157--173, 2024.
+
+\bibitem[Singhania et~al.(2024)]{recallthemall}
+S.~Singhania, S.~Razniewski, and G.~Weikum.
+\newblock Recall them all: Retrieval-augmented language models for long object
+  list extraction from long documents.
+\newblock arXiv:2405.02732, 2024.
+
+\bibitem[Song et~al.(2025)]{countingstars}
+M.~Song, M.~Zheng, and X.~Luo.
+\newblock Counting-Stars: A multi-evidence, position-aware, and scalable
+  benchmark for evaluating long-context large language models.
+\newblock In \emph{COLING}, 2025. arXiv:2403.11802.
+
+\bibitem[Tam et~al.(2024)]{letmespeak}
+Z.~R. Tam, C.-K. Wu, Y.-L. Tsai, C.-Y. Lin, H.-y. Lee, and Y.-N. Chen.
+\newblock Let me speak freely? A study on the impact of format restrictions on
+  performance of large language models.
+\newblock In \emph{EMNLP Industry Track}, 2024. arXiv:2408.02442.
+
+\bibitem[Willard and Louf(2023)]{outlines}
+B.~T. Willard and R.~Louf.
+\newblock Efficient guided generation for large language models.
+\newblock arXiv:2307.09702, 2023.
+
+\bibitem[.txt(2024)]{saywhatyoumean}
+.txt Engineering.
+\newblock Say what you mean: A response to ``Let Me Speak Freely''.
+\newblock \url{https://blog.dottxt.ai/say-what-you-mean.html}, 2024.
 
 \end{thebibliography}
 
