@@ -14,8 +14,8 @@
 \setlist{itemsep=2pt, topsep=4pt}
 \newcommand{\code}[1]{\texttt{\small #1}}
 
-\title{\bfseries Constrained Decoding Prevents Cardinality Degradation\\[2pt]
-in Structured Extraction}
+\title{\bfseries Cardinality Degradation in Structured Extraction:\\[2pt]
+A Constructed-Document Pilot of Constrained and Unconstrained Decoding}
 
 \author{Raunak Sood\\
 \normalsize University of Southern California\\
@@ -35,14 +35,20 @@ model must produce. Holding input length constant by construction, we build
 documents containing exactly $k$ verbatim-validated sentences, each naming one
 entity, and vary $k$ from 1 to 16. Extraction recall declines in $k$ under
 unconstrained decoding, by 0.214 from $k \le 3$ to $k \ge 16$ (Spearman
-$-0.293$, $p = 0.011$), and does not decline at all under a JSON schema
-($-0.114$, i.e.\ recall rises; $p = 0.73$). Paired on the same 75 documents per
-arm, unconstrained decoding leads by 0.200 at $k = 1$ and trails by 0.128 at
-$k = 16$ ($p = 0.005$). The mechanism is visible in emission counts: at $k = 16$
-the constrained arm emits 9.4 of 16 available items and the unconstrained arm
-7.2, at equal precision. Free to choose when to stop, the model stops early, and
-stops earlier as the list lengthens; a schema removes that choice because a
-partially filled array does not parse. We also show that item count, item
+$-0.293$, $p = 0.011$), and does not decline under a JSON schema
+($-0.114$, i.e.\ recall rises; $p = 0.73$). Paired on the same 75 documents,
+25 per level, unconstrained decoding leads by 0.200 at $k = 1$ and trails by
+0.128 at $k = 16$; the gap moves by $-0.082$ per doubling of $k$ ($p = 0.006$).
+The relative result is driven largely by the constrained arm's behaviour at
+$k = 1$, where it emits an empty list on 13 of 25 documents; with those
+documents removed the interaction vanishes ($p = 0.79$), and from $k = 4$ to
+$k = 16$ both arms decline by a similar amount. At $k = 16$ the constrained arm
+emits 9.4 of 16 available items and the unconstrained arm 7.2, at equal
+precision, so the arms differ in how many items they stop at rather than in
+which items they find; why the schema changes the stopping point is not
+established here. The study's pre-registered validity gate, recall of 0.80 at
+$k = 1$, was never met, so absolute recall levels are not interpretable and
+only the between-arm contrast is reported. We also show that item count, item
 density and document length cannot be held fixed simultaneously, which
 determines whether any measurement on this axis is an upper or a lower bound.
 \end{abstract}
@@ -69,22 +75,27 @@ reasoning tasks~\citep{letmespeak} are contested as artefacts of prompt
 mismatch~\citep{saywhatyoumean} or of vocabulary
 misalignment~\citep{domino}; grammar constraints help on structured NLP tasks
 without finetuning~\citep{gcd2023}; and a benchmark over ten thousand schemas
-measures validity, coverage and efficiency~\citep{jsonschemabench}. None of
-these varies the number of items to emit while holding input length fixed, and
-none compares decoding regimes on that axis.
+measures validity, coverage and efficiency~\citep{jsonschemabench}. Closer to the present axis, \citet{sametask} show that reasoning
+degrades as the same task is padded with more tokens, LongGenBench~\citep{longgenbench}
+measures how long structured \emph{outputs} degrade with their required length,
+and NoLiMa~\citep{nolima} separates retrieval from lexical matching in long
+contexts. None of these varies the number of items to emit while holding input
+length fixed, and none compares decoding regimes on that axis.
 
 The distinction matters because the two candidate explanations make opposite
 predictions. If degradation is a property of the model's attention over a long
 list of targets, a grammar should not help. If it is a property of the model
-choosing when to stop, a grammar that rejects incomplete output should help a
-great deal. The data support the second.
+choosing when to stop, a decoding regime that changes the stopping point should
+help. The data are consistent with the second, with the qualifications in
+Section~\ref{sec:results}.
 
 \paragraph{Contributions.} We fix $k$, the number of items to emit, as an
 evaluation axis and hold input length constant by constructing documents rather
 than annotating them, which makes $k$ exact and the gold set free. The result is
-reported as a slope, not an existence claim: the effect is present under
-unconstrained decoding and absent under a schema, inverting the expectation that
-grammars cost accuracy. A constraint that any study on this axis inherits is made
+reported as a slope, not an existence claim: the pre-registered decline is
+present under unconstrained decoding and absent under a schema, inverting the
+expectation that grammars cost accuracy, though the interaction between the
+two arms rests mostly on the $k = 1$ level and is reported with that caveat. A constraint that any study on this axis inherits is made
 explicit. Count, density and length are mechanically linked, so fixing two
 determines the third and decides the direction of the residual bias.
 
@@ -113,11 +124,22 @@ baseline. The bank is therefore defined empirically: a candidate sentence is
 retained only if the extractor recovers it at $k = 1$ in a short document. 143
 of 240 candidates survive.
 
-\paragraph{A validity gate.} Before any slope is fitted, recall at $k = 1$ must
-clear 0.80 for a cell to be interpretable: one item, one document, a sentence the
-extractor itself produced in the wild. This gate failed three times during
-construction, and each failure was informative. The decisive diagnosis came from
-holding the item and $k$ fixed and varying only the filler:
+\paragraph{A validity gate, which was not met.} The pre-registration
+(\code{docs/HYPOTHESIS\_CARDINALITY.md}, amendment of 2026-09-10) requires recall
+at $k = 1$ to clear 0.80 before any slope from a cell is interpretable: one item,
+one document, a sentence the extractor itself produced in the wild. The gate
+failed three times during construction (0.333, 0.400, 0.400), and the
+pre-registration's stop rule states that if it failed again after one further
+rebuild, the constructed design would be abandoned and the study written up as a
+dilution measurement and a negative report. The rebuild raised $k = 1$ recall to
+0.440 under constrained decoding and 0.640 under unconstrained decoding. Neither
+clears 0.80. The stop rule therefore called for abandoning the design, and we
+proceeded anyway. The consequence is stated here and carried through the paper:
+absolute recall levels in this study are not interpretable as properties of the
+extractor, and only the contrast between the two decoding arms on identical
+documents is reported. The three failures were nonetheless informative. The
+decisive diagnosis came from holding the item and $k$ fixed and varying only
+the filler:
 
 \begin{center}
 \small
@@ -164,16 +186,34 @@ that works against the hypothesis. Our estimate is therefore conservative.
 
 \section{Design and pre-registration}
 
-The hypothesis, estimator and rejection rule were fixed before any cell was run.
-Rejection requires \emph{both} a recall drop of at least 0.15 from $k \le 3$ to
-$k \ge 16$ \emph{and} $p < 0.05$ on the rank test. Bucket means are for display;
-estimation is per document.
+The pre-registration is a dated, amended document
+(\code{docs/HYPOTHESIS\_CARDINALITY.md}) and the history matters for reading the
+result. The hypothesis, that recall declines in $k$ at fixed input length, and
+the rejection rule, which requires \emph{both} a recall drop of at least 0.15
+from $k \le 3$ to $k \ge 16$ \emph{and} $p < 0.05$ on the rank test, were fixed
+before any cell was run and did not change. The second factor did. The original
+design was a $2 \times 2$ of model size (\code{qwen3:32b} against
+\code{qwen3:30b-a3b}) by reasoning mode (think against no-think). On 2026-09-11
+the reasoning-mode cells came back identical to three decimals, because on this
+stack the flag only changes which response field the same tokens are filed
+under, and the factor was replaced by constrained against unconstrained decoding.
+That replacement was recorded before the unconstrained arm was run, and the
+literature review had already named decoding regime as the strongest competing
+explanation, but the decoding comparison was not part of the original
+pre-registration and the interaction test in Section~\ref{sec:results} was not
+pre-specified at all. The repository's first commit (2026-09-14) contains both
+the pre-registration and the results, so the ordering rests on the document's
+own dated amendments rather than on commit history. Bucket means are for
+display; estimation is per document.
 
 Both arms use \code{qwen3:14b} at temperature 0 with a 32{,}768-token context and
-a 24{,}000-token generation ceiling, on 75 matched documents each at
-$k \in \{1, 4, 16\}$, 25 per level. The unconstrained arm is prompted for JSON and
-parsed post hoc, with a deliberately tolerant parser: a parse failure would score
-as a recall failure and confound the arm under test.
+a 24{,}000-token generation ceiling, on the same 75 documents, 25 at each of
+$k \in \{1, 4, 16\}$. The constrained arm is parsed with the strict schema parser,
+since its output is grammar-guaranteed to validate. The unconstrained arm is
+prompted for JSON and parsed post hoc with a deliberately tolerant parser that
+strips reasoning blocks and code fences and scans for the last balanced object:
+a parse failure would score as a recall failure and confound the arm under test.
+The asymmetry favours the unconstrained arm, if anything.
 
 \paragraph{The ceiling control matters and is easy to get wrong.} An earlier
 attempt used a 30B mixture-of-experts model, which writes 7{,}000 to 12{,}000
@@ -183,6 +223,7 @@ constrained decoding as hugely superior at the level that decides the study. Tha
 documents truncate and the maximum generation is 686 tokens.
 
 \section{Results}
+\label{sec:results}
 
 \begin{figure}[h]
 \centering
@@ -218,14 +259,40 @@ meaning recall rises, with Spearman $+0.041$, $p = 0.73$, satisfying neither.
 The $k = 1$ comparison favours unconstrained decoding by 0.200 at $p = 0.096$.
 Per-document recall at $k = 1$ is close to a Bernoulli draw, and the variance
 arithmetic implies 106 documents are needed to detect a 0.15 difference at 80\%
-power against the 25 run. We report it and do not interpret it.
+power against the 25 run.
 
-\paragraph{Mechanism.} At $k = 16$ the constrained arm emits 9.4 of 16 available
-items and the unconstrained arm 7.2, at precision 0.946 and 0.948 respectively.
-The difference is not a precision--recall trade: the unconstrained arm simply
-produces fewer items, and produces relatively fewer as the list lengthens. A
-schema makes an incomplete array unparseable, so generation continues past the
-point where the model would otherwise stop.
+\paragraph{The interaction test.} The pre-registered test is applied to each arm
+separately and never tests the claim the paper actually makes, which is that the
+slope differs between arms. That test was added after the data were in and is
+reported as such (\code{scripts/interaction\_test.py}). Regressing the paired
+difference, unconstrained minus constrained, on $\log_2 k$ gives a slope of
+$-0.082$ per doubling (s.e.\ 0.029, $p = 0.006$); Spearman of the paired
+difference against $k$ is $-0.403$ ($p = 0.0003$). The relative claim survives.
+It does not survive intact. At $k = 1$ the constrained arm returns an empty list
+on 13 of 25 documents, against 8 of 25 unconstrained, and those 13 documents
+carry the interaction: with them removed the slope is $+0.007$ ($p = 0.79$) and
+Spearman is $-0.185$ ($p = 0.15$). Within the unconstrained arm alone, recall
+from $k = 4$ to $k = 16$ falls from 0.530 to 0.426 with Spearman $-0.242$
+($p = 0.09$); within the constrained arm the same comparison falls from 0.640 to
+0.554 with Spearman $-0.237$ ($p = 0.10$). Above $k = 1$ the two arms decline by
+a similar amount. The honest statement of the result is therefore narrower than
+the pre-registered verdicts suggest: the unconstrained arm meets the rejection
+rule and the constrained arm does not, but the difference between them is
+concentrated at the one level the study's own power arithmetic and validity gate
+both flag as unreliable.
+
+\paragraph{Emission counts.} At $k = 16$ the constrained arm emits 9.4 of 16
+available items and the unconstrained arm 7.2, at precision 0.946 and 0.948
+respectively. The difference is not a precision--recall trade: the unconstrained
+arm produces fewer items, and relatively fewer as the list lengthens. Why the
+schema changes the stopping point is not established here. The schema is a bare
+\code{list[Link]} with no minimum length, so the grammar permits closing the
+array after any element, including after none, and the constrained arm does stop
+early, at 9.4 of 16, and emits an empty list on 13 of 25 documents at $k = 1$.
+An earlier draft attributed the difference to a partially filled array failing
+to parse; that is false for this schema. The manipulation that would test a
+grammar-level stopping account, a \code{minItems} bound or a required count
+field, was not run.
 
 \paragraph{Cost.} Unconstrained decoding is not cheaper. It costs $1.1\times$ the
 tokens at $k = 1$ and $0.7\times$ at $k = 16$: on this model it is both less
@@ -237,21 +304,32 @@ One model, dense, one family; nothing here separates architecture from decoding
 regime. The reasoning-mode flag on this stack changes only which response field
 the same tokens arrive in, verified by identical evaluation counts, so this work
 says nothing about inference-time reasoning. The item bank is drawn from a single
-domain and screened by one extractor, so absolute recall levels are not
-comparable across corpora. The slope is the estimand. The $k = 1$ arm is
-underpowered by the study's own arithmetic.
+domain and was screened with a different model (\code{qwen3:30b-a3b}) from the
+one evaluated (\code{qwen3:14b}), so the bank is not guaranteed recoverable at
+$k = 1$ by the evaluated extractor, which is one candidate explanation for the
+failed gate. Absolute recall levels are not interpretable, both for that reason
+and because the validity gate was not met. The between-arm contrast is the
+estimand, and it rests mostly on $k = 1$, the level that is underpowered by the
+study's own arithmetic. Twenty-five documents per level and one model is a pilot
+scale; the next run needs at least 100 documents per level and more than one
+model family.
 
 \section{Conclusion}
 
 On the axis of how many items a model must emit, the grammar is not what costs
-recall. Schema-constrained decoding holds recall flat across $k$, and removing it
-produces a decline that clears a pre-registered threshold. The mechanism is a
-stopping decision rather than a retrieval failure, which is why removing the
-decision fixes it.
+recall. Under the pre-registered rule, unconstrained decoding shows a decline in
+$k$ and schema-constrained decoding does not. The interaction between the arms is
+real on the full sample but is carried by the $k = 1$ level, where the
+constrained arm under-emits and the study's validity gate was not met; above
+$k = 1$ the arms decline together. The arms differ in where the model stops
+rather than in what it retrieves, and the mechanism behind that difference is
+unresolved.
 
-For practitioners the implication is direct: free-form generation with post-hoc
-parsing, often proposed as an escape from grammar masking~\citep{letmespeak}, trades away recall on
-the long-list cases where extraction is most valuable, and saves nothing.
+For practitioners the implication is narrower than the title suggests: on this
+model, free-form generation with post-hoc parsing, often proposed as an escape
+from grammar masking~\citep{letmespeak}, does not recover the recall it gives up
+on long lists, and costs no fewer tokens. Whether a schema actively protects
+recall at high $k$ is not settled by this study.
 For evaluation, a single $F_1$ over a benchmark whose $k$ distribution is
 unstated is not comparable across benchmarks, because it averages over a mix
 nobody reported.
@@ -304,12 +382,24 @@ LangChain.
 \newblock Multi needle in a haystack.
 \newblock \url{https://www.langchain.com/blog/multi-needle-in-a-haystack}, 2024.
 
+\bibitem[Levy et~al.(2024)]{sametask}
+M.~Levy, A.~Jacoby, and Y.~Goldberg.
+\newblock Same task, more tokens: The impact of input length on the reasoning
+  performance of large language models.
+\newblock In \emph{ACL}, 2024. arXiv:2402.14848.
+
 \bibitem[Liu et~al.(2024)]{lostinmiddle}
 N.~F. Liu, K.~Lin, J.~Hewitt, A.~Paranjape, M.~Bevilacqua, F.~Petroni, and
   P.~Liang.
 \newblock Lost in the middle: How language models use long contexts.
 \newblock \emph{Transactions of the Association for Computational Linguistics},
   12:157--173, 2024.
+
+\bibitem[Modarressi et~al.(2025)]{nolima}
+A.~Modarressi, H.~Deilamsalehy, F.~Dernoncourt, T.~Bui, R.~A. Rossi, S.~Yoon,
+  and H.~Sch\"utze.
+\newblock NoLiMa: Long-context evaluation beyond literal matching.
+\newblock arXiv:2502.05167, 2025.
 
 \bibitem[Singhania et~al.(2024)]{recallthemall}
 S.~Singhania, S.~Razniewski, and G.~Weikum.
@@ -322,6 +412,11 @@ M.~Song, M.~Zheng, and X.~Luo.
 \newblock Counting-Stars: A multi-evidence, position-aware, and scalable
   benchmark for evaluating long-context large language models.
 \newblock In \emph{COLING}, 2025. arXiv:2403.11802.
+
+\bibitem[Wu et~al.(2024)]{longgenbench}
+Y.~Wu, M.~Hee, Z.~Hu, and R.~K.-W. Lee.
+\newblock LongGenBench: Benchmarking long-form generation in long context LLMs.
+\newblock arXiv:2409.02076, 2024.
 
 \bibitem[Tam et~al.(2024)]{letmespeak}
 Z.~R. Tam, C.-K. Wu, Y.-L. Tsai, C.-Y. Lin, H.-y. Lee, and Y.-N. Chen.

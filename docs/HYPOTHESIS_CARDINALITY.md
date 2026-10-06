@@ -478,6 +478,17 @@ precision (0.946 and 0.948). Free to choose when to stop, the model stops early
 and does so more as the list lengthens. The schema removes that choice: a
 partially-filled array is not a valid parse, so generation continues.
 
+> **Correction, 2026-10-05.** The sentence above is wrong and is kept as the
+> record. The schema is `links: list[Link]` with no `minItems`, so the grammar
+> permits closing the array after any element; the constrained arm does stop
+> early and returns an empty list on 13 of 25 documents at `k=1`. The interaction
+> test (`project/scripts/interaction_test.py`, output in
+> `paper/interaction_test.txt`) finds the between-arm gap is carried by `k=1`:
+> slope −0.082 per doubling of `k` (p = 0.006) with all documents, +0.007
+> (p = 0.79) with the 13 constrained-empty `k=1` documents removed. Above `k=1`
+> both arms decline at a similar rate. Why the schema shifts the stopping point
+> is not established; `minItems` is the untested manipulation.
+
 At `k=1` the ordering reverses, +0.200 in favour of unconstrained at p = 0.096.
 That is the level this study's own power arithmetic said needs 106 documents
 rather than 25, because per-document recall at `k=1` is a coin flip. It is

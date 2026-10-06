@@ -1,10 +1,14 @@
 # Cardinality in Structured Extraction
 
-**Extraction recall degrades with the number of items a model must emit — but only when
-decoding is unconstrained. Free generation loses 0.214 recall from k=1 to k=16
-(Spearman −0.293, p = 0.011). Under a JSON schema the same model on the same documents
-loses nothing (−0.114, i.e. recall rises; p = 0.73). The grammar is not the cost. It is
-the mitigation.**
+**Under the pre-registered rule, extraction recall degrades with the number of items a
+model must emit when decoding is unconstrained (−0.214 from k=1 to k=16, Spearman −0.293,
+p = 0.011) and does not under a JSON schema (−0.114, i.e. recall rises; p = 0.73). The gap
+between arms moves −0.082 per doubling of k (p = 0.006), but that interaction is carried by
+k=1, where the constrained arm returns an empty list on 13 of 25 documents; with those
+documents removed it vanishes (p = 0.79), and from k=4 to k=16 both arms decline by a
+similar amount. The study's own k=1 validity gate (recall ≥ 0.80) was never met, so
+absolute levels are not interpretable. The grammar is not the cost. Whether it is the
+mitigation is not settled at this scale.**
 
 ## Objective
 
@@ -16,17 +20,32 @@ and the answer reported as a slope rather than an existence claim.
 
 ## Hypothesis
 
-Pre-registered in [`docs/HYPOTHESIS_CARDINALITY.md`](docs/HYPOTHESIS_CARDINALITY.md)
-before any cell was run: recall declines in `k`, the number of items to emit, holding
+Pre-registered in [`docs/HYPOTHESIS_CARDINALITY.md`](docs/HYPOTHESIS_CARDINALITY.md),
+a dated and amended document: recall declines in `k`, the number of items to emit, holding
 schema and input length fixed. Rejection required **both** a drop of at least 0.15 from
-`k<=3` to `k>=16` **and** p < 0.05. The literature review recorded constrained decoding as
-the strongest competing explanation — the worry being that the cost of staying inside a
-grammar grows with array length, making any apparent effect a property of the decoder.
+`k<=3` to `k>=16` **and** p < 0.05. That hypothesis and rule were fixed before any cell
+ran and did not change. The second factor did: the original design was model size ×
+think/no-think, and on 2026-09-11 the think factor proved inert (identical `eval_count`
+either way) and was replaced by constrained vs unconstrained decoding, which the
+literature review had already named as the strongest competing explanation. The decoding
+comparison was therefore adopted after the first cells ran, before the unconstrained arm
+was run. The interaction test below was not pre-specified. The repository's first commit
+(2026-09-14) contains both the pre-registration and the results, so the ordering rests on
+the document's own dated amendments, not on commit history.
 
 ## Result
 
-`qwen3:14b`, `num_ctx` 32,768, 75 matched documents per arm, zero truncations, max 686
-tokens against a 24,000 ceiling.
+`qwen3:14b`, `num_ctx` 32,768, the same 75 documents in both arms (25 per level at
+k ∈ {1, 4, 16}), zero truncations, max 686 tokens against a 24,000 ceiling. The constrained
+arm is parsed with the strict schema parser; the unconstrained arm with a tolerant parser
+that strips reasoning and scans for the last balanced object, so a parse failure cannot
+masquerade as a recall failure.
+
+**The k=1 validity gate was not met.** The pre-registration required recall ≥ 0.80 at k=1
+for any slope to be interpretable, and said the constructed design would be abandoned if
+the gate failed after one more rebuild. Final k=1 recall is 0.440 constrained and 0.640
+unconstrained. The study proceeded anyway. Absolute recall levels below are therefore not
+properties of the extractor; only the between-arm contrast on identical documents is read.
 
 | k | constrained | unconstrained | paired diff | p |
 |---|---|---|---|---|
@@ -39,12 +58,25 @@ tokens against a 24,000 ceiling.
 | constrained | **−0.114** (recall rises) | +0.041, p = 0.73 | no effect |
 | unconstrained | **+0.214** | −0.293, p = 0.011 | **rejects the null** |
 
-The competing explanation is not merely unsupported; it points the wrong way.
+**Interaction test** (added post hoc, `scripts/interaction_test.py`, output in
+`paper/interaction_test.txt`). The per-arm verdicts above never test the claim that the
+slopes differ. Regressing the paired difference (unconstrained − constrained) on log₂k:
+slope −0.082 per doubling, p = 0.006; Spearman −0.403, p = 0.0003. But at k=1 the
+constrained arm returns an empty list on 13 of 25 documents (unconstrained: 8 of 25), and
+those documents carry the interaction: without them the slope is +0.007 (p = 0.79). Within
+each arm from k=4 to k=16, recall falls 0.530 → 0.426 unconstrained (Spearman −0.242,
+p = 0.09) and 0.640 → 0.554 constrained (−0.237, p = 0.10). Above k=1 the arms decline
+together. The relative claim survives on the full sample and rests on its least reliable
+level.
 
-**Mechanism.** At k=16 the constrained arm emits 9.4 items of 16 available and the
-unconstrained arm 7.2, at nearly identical precision (0.946 vs 0.948). Left to decide when
-to stop, the model stops early, and stops earlier as the list lengthens. A schema removes
-the choice: a half-filled array will not parse, so generation continues.
+**Emission counts, not a mechanism.** At k=16 the constrained arm emits 9.4 items of 16
+available and the unconstrained arm 7.2, at nearly identical precision (0.946 vs 0.948).
+The arms differ in where the model stops, not in what it finds. An earlier version of this
+README said a half-filled array will not parse under the schema; that is false. The schema
+is a bare `list[Link]` with no `minItems`, so the grammar allows closing the array after
+any element, and the constrained arm does stop early and emits empty lists at k=1. The
+manipulation that would test a grammar-level stopping account (`minItems`, or a required
+count field) has not been run.
 
 Unconstrained decoding costs **1.1× the tokens at k=1 and 0.7× at k=16** — it is not a
 compute tradeoff, it is strictly worse at high k on this model.
@@ -86,6 +118,10 @@ not naming the choice does not.
 ## Limitations
 
 One model, dense, one family, so nothing here separates architecture from decoding. The
+item bank was screened with `qwen3:30b-a3b` and evaluated with `qwen3:14b`, so the bank is
+not guaranteed recoverable by the evaluated extractor, which is one candidate cause of the
+failed k=1 gate. Twenty-five documents per level is pilot scale; the next run needs ≥ 100
+per level and more than one model family. The
 reasoning-mode factor **does not exist on this stack** — `think` only relabels which
 response field the same tokens arrive in, verified by identical `eval_count` — so this says
 nothing about inference-time reasoning. The 30B MoE arm was discarded as context-bound
