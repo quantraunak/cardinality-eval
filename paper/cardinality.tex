@@ -92,10 +92,12 @@ Section~\ref{sec:results}.
 \paragraph{Contributions.} We fix $k$, the number of items to emit, as an
 evaluation axis and hold input length constant by constructing documents rather
 than annotating them, which makes $k$ exact and the gold set free. The result is
-reported as a slope, not an existence claim: the pre-registered decline is
-present under unconstrained decoding and absent under a schema, inverting the
-expectation that grammars cost accuracy, though the interaction between the
-two arms rests mostly on the $k = 1$ level and is reported with that caveat. A constraint that any study on this axis inherits is made
+reported as a slope, not an existence claim: under the pre-registered rejection
+rule the decline is present under unconstrained decoding and absent under a
+schema, inverting the expectation that grammars cost accuracy, though the
+decoding comparison itself was adopted after the original pre-registration
+(Section~4) and the interaction between the two arms rests mostly on the
+$k = 1$ level, so both are reported with that caveat. A constraint that any study on this axis inherits is made
 explicit. Count, density and length are mechanically linked, so fixing two
 determines the third and decides the direction of the residual bias.
 
@@ -122,7 +124,8 @@ syntactic filters for ``which sentences transplant into a synthetic document''
 were tried and all three failed, leaving recall at $k = 1$ far below any usable
 baseline. The bank is therefore defined empirically: a candidate sentence is
 retained only if the extractor recovers it at $k = 1$ in a short document. 143
-of 240 candidates survive.
+spans survive (\code{cardinality\_bank\_screened.parquet}); the number of candidates
+screened was not retained in a committed artifact.
 
 \paragraph{A validity gate, which was not met.} The pre-registration
 (\code{docs/HYPOTHESIS\_CARDINALITY.md}, amendment of 2026-09-10) requires recall
@@ -139,7 +142,8 @@ absolute recall levels in this study are not interpretable as properties of the
 extractor, and only the contrast between the two decoding arms on identical
 documents is reported. The three failures were nonetheless informative. The
 decisive diagnosis came from holding the item and $k$ fixed and varying only
-the filler:
+the filler (recorded in the pre-registration of 2026-09-10; the run output itself
+was not committed):
 
 \begin{center}
 \small
@@ -219,8 +223,10 @@ The asymmetry favours the unconstrained arm, if anything.
 attempt used a 30B mixture-of-experts model, which writes 7{,}000 to 12{,}000
 tokens unconstrained against an 8{,}192-token window. Four of six $k = 16$
 documents truncated mid-array, parsed to zero items, and would have reported
-constrained decoding as hugely superior at the level that decides the study. That arm was discarded rather than repaired. In the reported runs, zero
-documents truncate and the maximum generation is 686 tokens.
+constrained decoding as hugely superior at the level that decides the study. That arm was discarded rather than repaired. In the reported runs no
+response approaches the ceiling: the longest is 903 tokens (constrained) and 642
+(unconstrained), against 24{,}000. The cache does not record a stop reason, so
+the absence of truncation is inferred from that margin rather than observed.
 
 \section{Results}
 \label{sec:results}

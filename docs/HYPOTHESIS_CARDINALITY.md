@@ -447,6 +447,11 @@ document on the 14B costs 448 tokens against 752 constrained, a ratio below one.
 Both arms complete, `qwen3:14b` at `num_ctx` 32,768, 75 documents each, matched.
 Zero truncations, maximum 686 tokens against a 24,000 ceiling.
 
+> **Correction, 2026-10-07.** 686 is the mean `eval_count` at `k=16` in the constrained
+> arm, not a maximum. The longest cached response is 903 tokens (constrained) and 642
+> (unconstrained). No stop reason is stored in the cache; "zero truncations" is inferred
+> from that margin against the 24,000 ceiling. See `docs/CLAIMS.md`.
+
 | k | constrained recall | unconstrained recall | paired diff | p |
 |---|---|---|---|---|
 | 1 | 0.440 | 0.640 | +0.200 | 0.096 |
