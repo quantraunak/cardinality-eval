@@ -5,19 +5,23 @@ it was pre-registered, and its status after the 2026-10-07 consistency pass. "HY
 `docs/HYPOTHESIS_CARDINALITY.md` (dated amendments); "DR" is
 `project/reports/decoding_result.txt` (regenerate with `python3 project/scripts/score_decoding.py`);
 "IT" is `paper/interaction_test.txt` (`python3 project/scripts/interaction_test.py`);
+"JV" is `paper/json_validity.txt` (`python3 project/scripts/json_validity.py`);
 "site" is the raunaksood repo (`app/work/cardinality/page.tsx`, the blog post
 `app/writing/the-schema-is-not-the-cost/page.tsx`, `lib/content.ts`).
 
 | claim | where it appears | artifact | pre-registered? | status |
 |---|---|---|---|---|
-| Unconstrained recall drops 0.214 from k≤3 to k≥16; Spearman −0.293, p = 0.011 | README Result; paper abstract, §5; HYP Result 2026-09-14; site page; blog; content.ts | DR | Rejection rule yes (HYP 2026-09-10 Estimator); applying it per decoding arm follows the 2026-09-11 amendment, so the arm comparison is exploratory relative to the original design | consistent |
+| Unconstrained recall drops 0.131 from k≤3 to k≥16; Spearman −0.255, p = 0.027; **does not meet the rule** (drop < 0.15) | README Result; paper abstract, §5; HYP correction 2026-10-07; site page; blog; content.ts | DR (repaired scoring) | Rejection rule yes (HYP 2026-09-10 Estimator); applying it per decoding arm follows the 2026-09-11 amendment, so the arm comparison is exploratory relative to the original design | **CORRECTED 2026-10-07**: the earlier 0.214 / p = 0.011 / "rejects" was a scorer defect (six unconstrained responses with unescaped quotes scored as zero links); withdrawn everywhere, disclosed in paper, README, HYP, site |
+| Six of 75 unconstrained responses invalid as emitted (0 at k=1, 2 at k=4, 4 at k=16), all complete `}]}` objects, 39 links, 38 matching gold, scored as zero before the repair | README; paper §4, §5; HYP correction 2026-10-07; site; blog | JV; `repair_quotes` + `tests/test_parse_loose.py` | — | consistent (new 2026-10-07) |
+| Valid JSON as emitted: unconstrained 25/25, 23/25, 21/25; constrained 75/75 | README; paper §5 (Validity); site; blog; content.ts | JV; DR "valid JSON" column | exploratory (not pre-specified) | consistent (new 2026-10-07) |
 | Constrained drop −0.114 (rises); Spearman +0.041, p = 0.73 | same | DR | same | consistent |
-| Paired table: k=1 0.440/0.640/+0.200/p 0.096; k=4 0.640/0.530/−0.110/0.110; k=16 0.554/0.426/−0.128/0.005 | README; paper Table 1; HYP Result; blog; site | DR + IT | post hoc (paired test not pre-specified) | consistent |
-| Interaction slope −0.082 per doubling, se 0.029, p = 0.006; Spearman −0.403, p = 0.0003 | README; paper §5; HYP correction 2026-10-05; site; blog | IT (a), (b) | post hoc, 2026-10-05 | consistent |
+| Paired table: k=1 0.440/0.640/+0.200/p 0.096; k=4 0.640/0.580/−0.060/0.185; k=16 0.554/0.509/−0.045/0.026 | README; paper Table 1; HYP correction 2026-10-07; blog; site | DR + IT | post hoc (paired test not pre-specified) | **CORRECTED 2026-10-07** (was 0.530/−0.110/0.110 and 0.426/−0.128/0.005 before the repair; HYP keeps the old table with the dated correction above it) |
+| Interaction slope −0.061 per doubling, se 0.026, p = 0.020; Spearman −0.291, p = 0.011 | README; paper §5; HYP corrections 2026-10-05 and 2026-10-07; site; blog | IT (a), (b) | post hoc, 2026-10-05 | **CORRECTED 2026-10-07** (was −0.082, p = 0.006; −0.403, p = 0.0003) |
 | Constrained empty list on 13 of 25 at k=1; unconstrained 8 of 25 | README; paper; HYP correction; site; blog | IT (d) | post hoc | consistent |
-| Without those 13: slope +0.007, p = 0.79; Spearman −0.185, p = 0.15 | README; paper; site; blog | IT (e) | post hoc | consistent |
-| Within-arm k=4→16: unconstrained 0.530→0.426, ρ −0.242, p = 0.09; constrained 0.640→0.554, ρ −0.237, p = 0.10 | README; paper | IT (c), (c′) | post hoc | consistent |
-| Emitted at k=16: 9.4 vs 7.2; precision 0.946 vs 0.948 | README; paper; HYP; site; blog | DR; IT (f) | exploratory | consistent |
+| Without those 13: slope +0.027, p = 0.17; Spearman −0.034, p = 0.79 | README; paper; site; blog | IT (e) | post hoc | **CORRECTED 2026-10-07** (was +0.007, p = 0.79; −0.185, p = 0.15) |
+| Within-arm k=4→16: unconstrained 0.580→0.509, ρ −0.233, p = 0.10; constrained 0.640→0.554, ρ −0.237, p = 0.10 | README; paper | IT (c), (c′) | post hoc | **CORRECTED 2026-10-07** (unconstrained was 0.530→0.426, ρ −0.242, p = 0.09) |
+| Emitted at k=16: 9.4 vs 8.5; precision 0.946 vs 0.953 | README; paper; HYP correction 2026-10-07; site; blog | DR; IT (f) | exploratory | **CORRECTED 2026-10-07** (was 7.2 / 0.948; most of the earlier gap was the parser defect) |
+| Paper title "What Constrained Decoding Buys at High Item Counts: Validity, Not Recall" (was "Cardinality Degradation in Structured Extraction: A Constructed-Document Pilot…", before that "Constrained Decoding Prevents Cardinality Degradation…") | paper; content.ts; site | — | — | retitled 2026-10-07 to claim only what has an artifact |
 | Token cost ratio 1.1× at k=1, 0.7× at k=16 | README; paper; HYP; blog | DR | exploratory | consistent |
 | "Maximum 686 tokens against a 24,000 ceiling" | README Result; paper §4; HYP Result 2026-09-14; blog ("zero truncations") | `decoding_runs/*.json` `eval_count`: mean at k=16 constrained 686; **maximum 903 constrained, 642 unconstrained** | — | **CONTRADICTION** (a mean reported as a maximum). Fixed in README and paper; dated correction added to HYP |
 | Zero truncations | README; paper; HYP; blog | no stop reason in cache; inferred from 903 ≪ 24,000 | control 2, HYP 2026-09-10 | consistent, now stated as inferred |
@@ -40,6 +44,7 @@ it was pre-registered, and its status after the 2026-10-07 consistency pass. "HY
 
 ## What needs a new experiment, not an edit
 
+- Whether either regime's recall declines with k at all under the rule: n ≥ 100 per level (the unconstrained drop is 0.131 against a 0.15 rule, and p = 0.027, so the pilot is underpowered for the size condition).
 - Whether the schema protects recall above k=1 (the between-arm slope is carried by k=1): `minItems` / required-count manipulation, and n ≥ 100 per level.
 - Whether the k=1 gate can be met at all with a bank screened by the evaluated model: re-screen the bank with `qwen3:14b`.
 - A second model family.

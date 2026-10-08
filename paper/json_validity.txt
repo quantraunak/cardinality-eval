@@ -1,0 +1,8 @@
+documents paired: 75
+
+   k  constrained valid  unconstrained valid unconstrained invalid, links recovered by repair
+   1           25/25                25/25                                                   0
+   4           25/25                23/25                                                   5
+  16           25/25                21/25                                                  34
+
+unconstrained responses invalid as emitted: 6 of 75; they carry 39 links, 38 matching gold, all scored as zero before the 2026-10-07 repair.

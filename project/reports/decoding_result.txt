@@ -1,0 +1,21 @@
+documents scored in every arm: 75
+
+=== constrained  n=75 ===
+   k    n   recall  precision  emitted   tokens  valid JSON
+   1   25    0.440      0.917      0.5       44     25/25  
+   4   25    0.640      0.976      2.6      199     25/25  
+  16   25    0.554      0.946      9.4      686     25/25  
+  Spearman +0.041 p=7.25e-01   slope +0.0284/doubling   k<=3 0.440 vs k>=16 0.554 drop -0.114
+
+=== unconstrained  n=75 ===
+   k    n   recall  precision  emitted   tokens  valid JSON
+   1   25    0.640      0.882      0.8       47     25/25  
+   4   25    0.580      0.976      2.4      142     23/25  
+  16   25    0.509      0.953      8.5      486     21/25  
+  Spearman -0.255 p=2.72e-02   slope -0.0328/doubling   k<=3 0.640 vs k>=16 0.509 drop +0.131
+
+=== paired difference, unconstrained - constrained ===
+   k    n   d_recall  paired t p  Wilcoxon p  token ratio
+   1   25     +0.200       0.096       0.164         1.1x
+   4   25     -0.060       0.185       0.240         0.7x
+  16   25     -0.045       0.026       0.030         0.7x

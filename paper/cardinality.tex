@@ -14,8 +14,8 @@
 \setlist{itemsep=2pt, topsep=4pt}
 \newcommand{\code}[1]{\texttt{\small #1}}
 
-\title{\bfseries Cardinality Degradation in Structured Extraction:\\[2pt]
-A Constructed-Document Pilot of Constrained and Unconstrained Decoding}
+\title{\bfseries What Constrained Decoding Buys at High Item Counts:\\[2pt]
+Validity, Not Recall}
 
 \author{Raunak Sood\\
 \normalsize University of Southern California\\
@@ -33,24 +33,25 @@ output through a grammar masks tokens the model would otherwise emit. We measure
 that cost along an axis it has not been measured on: the number of items the
 model must produce. Holding input length constant by construction, we build
 documents containing exactly $k$ verbatim-validated sentences, each naming one
-entity, and vary $k$ from 1 to 16. Extraction recall declines in $k$ under
-unconstrained decoding, by 0.214 from $k \le 3$ to $k \ge 16$ (Spearman
-$-0.293$, $p = 0.011$), and does not decline under a JSON schema
-($-0.114$, i.e.\ recall rises; $p = 0.73$). Paired on the same 75 documents,
-25 per level, unconstrained decoding leads by 0.200 at $k = 1$ and trails by
-0.128 at $k = 16$; the gap moves by $-0.082$ per doubling of $k$ ($p = 0.006$).
-The relative result is driven largely by the constrained arm's behaviour at
-$k = 1$, where it emits an empty list on 13 of 25 documents; with those
-documents removed the interaction vanishes ($p = 0.79$), and from $k = 4$ to
-$k = 16$ both arms decline by a similar amount. At $k = 16$ the constrained arm
-emits 9.4 of 16 available items and the unconstrained arm 7.2, at equal
-precision, so the arms differ in how many items they stop at rather than in
-which items they find; why the schema changes the stopping point is not
-established here. The study's pre-registered validity gate, recall of 0.80 at
-$k = 1$, was never met, so absolute recall levels are not interpretable and
-only the between-arm contrast is reported. We also show that item count, item
-density and document length cannot be held fixed simultaneously, which
-determines whether any measurement on this axis is an upper or a lower bound.
+entity, and vary $k$ from 1 to 16, with 25 documents per level on one model.
+Under a pre-registered rejection rule (a recall drop of at least 0.15 from
+$k \le 3$ to $k \ge 16$ and $p < 0.05$), neither decoding regime rejects the
+null: unconstrained recall falls 0.131 (Spearman $-0.255$, $p = 0.027$) and
+schema-constrained recall does not fall ($-0.114$, i.e.\ it rises; $p = 0.73$).
+An earlier version of this paper reported a 0.214 drop and a rejection for the
+unconstrained arm; six of its 75 responses had been scored as zero because the
+tolerant parser rejected valid-looking JSON containing unescaped quotation marks
+copied from the filings, and a repair step that recovers them is now part of the
+scorer. Paired on identical documents, the gap between arms moves $-0.061$ per
+doubling of $k$ ($p = 0.020$), but it is carried by $k = 1$, where the
+constrained arm emits an empty list on 13 of 25 documents; without those
+documents the interaction vanishes ($p = 0.17$). What does survive with an
+artifact is validity: the share of responses that are valid JSON as emitted
+falls with $k$ without a grammar (25/25, 23/25, 21/25) and is 75/75 under one.
+The study's validity gate, recall of 0.80 at $k = 1$, was never met, so absolute
+recall levels are not interpretable. We also show that item count, item density
+and document length cannot be held fixed simultaneously, which determines
+whether any measurement on this axis is an upper or a lower bound.
 \end{abstract}
 
 \section{Introduction}
@@ -86,20 +87,23 @@ The distinction matters because the two candidate explanations make opposite
 predictions. If degradation is a property of the model's attention over a long
 list of targets, a grammar should not help. If it is a property of the model
 choosing when to stop, a decoding regime that changes the stopping point should
-help. The data are consistent with the second, with the qualifications in
-Section~\ref{sec:results}.
+help. At this scale the data do not decide between them: once a parser defect
+is repaired (Section~\ref{sec:results}), neither arm meets the pre-registered
+rejection rule, and the measurable difference the grammar makes is to output
+validity rather than to recall.
 
 \paragraph{Contributions.} We fix $k$, the number of items to emit, as an
 evaluation axis and hold input length constant by constructing documents rather
 than annotating them, which makes $k$ exact and the gold set free. The result is
-reported as a slope, not an existence claim: under the pre-registered rejection
-rule the decline is present under unconstrained decoding and absent under a
-schema, inverting the expectation that grammars cost accuracy, though the
-decoding comparison itself was adopted after the original pre-registration
-(Section~4) and the interaction between the two arms rests mostly on the
-$k = 1$ level, so both are reported with that caveat. A constraint that any study on this axis inherits is made
-explicit. Count, density and length are mechanically linked, so fixing two
-determines the third and decides the direction of the residual bias.
+reported as a slope, not an existence claim, and at pilot scale it is a null
+under the pre-registered rule for both decoding regimes, with a measured
+between-arm gap that rests on the $k = 1$ level. The one effect of the grammar
+that carries an artifact is on validity: free-form output stops being valid JSON
+as the list lengthens. The decoding comparison itself was adopted after the
+original pre-registration (Section~4) and is reported as exploratory. A
+constraint that any study on this axis inherits is made explicit. Count, density
+and length are mechanically linked, so fixing two determines the third and
+decides the direction of the residual bias.
 
 \section{Constructing documents with known $k$}
 
@@ -217,7 +221,16 @@ since its output is grammar-guaranteed to validate. The unconstrained arm is
 prompted for JSON and parsed post hoc with a deliberately tolerant parser that
 strips reasoning blocks and code fences and scans for the last balanced object:
 a parse failure would score as a recall failure and confound the arm under test.
-The asymmetry favours the unconstrained arm, if anything.
+That is exactly what happened in the first scoring of these runs: six of the 75
+unconstrained responses are complete objects whose string values contain
+unescaped quotation marks copied verbatim from the filings, such as
+\code{Express Scripts, Inc. ("Express Scripts")}, which is not valid JSON, and the
+parser scored all six as zero links. They carry 39 links, 38 of which match gold.
+The scorer now escapes interior quotes and re-parses, failing closed when the
+repair does not yield valid JSON (\code{repair\_quotes} in
+\code{run\_decoding\_arm.py}, with unit tests), and every number in this paper is
+from the repaired scoring. The asymmetry in parsing favours the unconstrained arm,
+if anything.
 
 \paragraph{The ceiling control matters and is easy to get wrong.} An earlier
 attempt used a 30B mixture-of-experts model, which writes 7{,}000 to 12{,}000
@@ -236,8 +249,8 @@ the absence of truncation is inferred from that margin rather than observed.
 \includegraphics[width=\textwidth]{figures/cardinality.pdf}
 \caption{(a) Recall against item count for both decoding regimes, 75 matched
 documents per arm, error bars one standard error. The arms cross between $k=1$
-and $k=4$. (b) Items emitted against items available. The constrained arm tracks
-availability more closely as $k$ grows; the unconstrained arm falls away.}
+and $k=4$. (b) Items emitted against items available. Both arms fall away from
+availability as $k$ grows; the constrained arm slightly less.}
 \label{fig:main}
 \end{figure}
 
@@ -249,18 +262,24 @@ availability more closely as $k$ grows; the unconstrained arm falls away.}
 $k$ & constrained & unconstrained & paired difference & $p$ \\
 \midrule
 1 & 0.440 & 0.640 & $+0.200$ & 0.096 \\
-4 & 0.640 & 0.530 & $-0.110$ & 0.110 \\
-16 & 0.554 & 0.426 & $\mathbf{-0.128}$ & $\mathbf{0.005}$ \\
+4 & 0.640 & 0.580 & $-0.060$ & 0.185 \\
+16 & 0.554 & 0.509 & $-0.045$ & 0.026 \\
 \bottomrule
 \end{tabular}
-\caption{Recall by item count and decoding regime, paired on identical documents.}
+\caption{Recall by item count and decoding regime, paired on identical documents;
+$p$ from a paired $t$-test on the per-document differences
+(\code{score\_decoding.py}).}
 \label{tab:main}
 \end{table}
 
-The pre-registered test rejects for one arm and not the other. Unconstrained
-decoding drops $0.214$ from $k \le 3$ to $k \ge 16$ with Spearman $-0.293$,
-$p = 0.011$, satisfying both conditions. Constrained decoding drops $-0.114$,
-meaning recall rises, with Spearman $+0.041$, $p = 0.73$, satisfying neither.
+The pre-registered test rejects for neither arm. Unconstrained decoding drops
+$0.131$ from $k \le 3$ to $k \ge 16$ with Spearman $-0.255$, $p = 0.027$: the
+rank test clears $p < 0.05$ but the drop is below the 0.15 the rule requires.
+Constrained decoding drops $-0.114$, meaning recall rises, with Spearman
+$+0.041$, $p = 0.73$, satisfying neither condition. An earlier version of this
+paper reported $0.214$ and $p = 0.011$ for the unconstrained arm and called it a
+rejection; the difference is entirely the six parser failures described in
+Section~4, which sat at $k = 4$ (two) and $k = 16$ (four).
 
 The $k = 1$ comparison favours unconstrained decoding by 0.200 at $p = 0.096$.
 Per-document recall at $k = 1$ is close to a Bernoulli draw, and the variance
@@ -268,37 +287,43 @@ arithmetic implies 106 documents are needed to detect a 0.15 difference at 80\%
 power against the 25 run.
 
 \paragraph{The interaction test.} The pre-registered test is applied to each arm
-separately and never tests the claim the paper actually makes, which is that the
-slope differs between arms. That test was added after the data were in and is
-reported as such (\code{scripts/interaction\_test.py}). Regressing the paired
-difference, unconstrained minus constrained, on $\log_2 k$ gives a slope of
-$-0.082$ per doubling (s.e.\ 0.029, $p = 0.006$); Spearman of the paired
-difference against $k$ is $-0.403$ ($p = 0.0003$). The relative claim survives.
-It does not survive intact. At $k = 1$ the constrained arm returns an empty list
-on 13 of 25 documents, against 8 of 25 unconstrained, and those 13 documents
-carry the interaction: with them removed the slope is $+0.007$ ($p = 0.79$) and
-Spearman is $-0.185$ ($p = 0.15$). Within the unconstrained arm alone, recall
-from $k = 4$ to $k = 16$ falls from 0.530 to 0.426 with Spearman $-0.242$
-($p = 0.09$); within the constrained arm the same comparison falls from 0.640 to
-0.554 with Spearman $-0.237$ ($p = 0.10$). Above $k = 1$ the two arms decline by
-a similar amount. The honest statement of the result is therefore narrower than
-the pre-registered verdicts suggest: the unconstrained arm meets the rejection
-rule and the constrained arm does not, but the difference between them is
-concentrated at the one level the study's own power arithmetic and validity gate
-both flag as unreliable.
+separately and never tests whether the slope differs between arms. That test was
+added after the data were in and is reported as such
+(\code{scripts/interaction\_test.py}). Regressing the paired difference,
+unconstrained minus constrained, on $\log_2 k$ gives a slope of $-0.061$ per
+doubling (s.e.\ 0.026, $p = 0.020$); Spearman of the paired difference against
+$k$ is $-0.291$ ($p = 0.011$). At $k = 1$ the constrained arm returns an empty
+list on 13 of 25 documents, against 8 of 25 unconstrained, and those 13 documents
+carry the interaction: with them removed the slope is $+0.027$ ($p = 0.17$) and
+Spearman is $-0.034$ ($p = 0.79$). Within the unconstrained arm alone, recall
+from $k = 4$ to $k = 16$ falls from 0.580 to 0.509 with Spearman $-0.233$
+($p = 0.10$); within the constrained arm the same comparison falls from 0.640 to
+0.554 with Spearman $-0.237$ ($p = 0.10$). Above $k = 1$ the two arms decline
+together. The between-arm difference in recall is therefore a property of the
+one level the study's own power arithmetic and validity gate both flag as
+unreliable, and it is not a finding.
+
+\paragraph{Validity, the effect that has an artifact.} The share of responses
+that are valid JSON as emitted, before any repair, is 25/25, 23/25 and 21/25 at
+$k = 1, 4, 16$ without a grammar and 75/75 with one
+(\code{json\_valid} in the scorer; \code{paper/json\_validity.txt} from
+\code{scripts/json\_validity.py}, and the ``valid JSON'' column of
+\code{project/reports/decoding\_result.txt}). The failures are not truncation
+and not refusal: they are complete objects that break the format by quoting a
+filing's own short form inside a string. That is the concrete thing a grammar
+buys at high item counts in this study, and it is the thing a production system
+without a repair step would have lost.
 
 \paragraph{Emission counts.} At $k = 16$ the constrained arm emits 9.4 of 16
-available items and the unconstrained arm 7.2, at precision 0.946 and 0.948
-respectively. The difference is not a precision--recall trade: the unconstrained
-arm produces fewer items, and relatively fewer as the list lengthens. Why the
-schema changes the stopping point is not established here. The schema is a bare
+available items and the unconstrained arm 8.5, at precision 0.946 and 0.953
+respectively. Both arms stop well short of the 16 available. The schema is a bare
 \code{list[Link]} with no minimum length, so the grammar permits closing the
 array after any element, including after none, and the constrained arm does stop
-early, at 9.4 of 16, and emits an empty list on 13 of 25 documents at $k = 1$.
-An earlier draft attributed the difference to a partially filled array failing
-to parse; that is false for this schema. The manipulation that would test a
-grammar-level stopping account, a \code{minItems} bound or a required count
-field, was not run.
+early and emits an empty list on 13 of 25 documents at $k = 1$. An earlier draft
+attributed a larger emission gap to a partially filled array failing to parse;
+that is false for this schema, and most of the gap was the parser defect. The
+manipulation that would test a grammar-level stopping account, a
+\code{minItems} bound or a required count field, was not run.
 
 \paragraph{Cost.} Unconstrained decoding is not cheaper. It costs $1.1\times$ the
 tokens at $k = 1$ and $0.7\times$ at $k = 16$: on this model it is both less
@@ -314,31 +339,32 @@ domain and was screened with a different model (\code{qwen3:30b-a3b}) from the
 one evaluated (\code{qwen3:14b}), so the bank is not guaranteed recoverable at
 $k = 1$ by the evaluated extractor, which is one candidate explanation for the
 failed gate. Absolute recall levels are not interpretable, both for that reason
-and because the validity gate was not met. The between-arm contrast is the
-estimand, and it rests mostly on $k = 1$, the level that is underpowered by the
-study's own arithmetic. Twenty-five documents per level and one model is a pilot
+and because the validity gate was not met. The between-arm recall contrast rests
+on $k = 1$, the level that is underpowered by the study's own arithmetic, and the
+pre-registered rule rejects for neither arm. Twenty-five documents per level and one model is a pilot
 scale; the next run needs at least 100 documents per level and more than one
 model family.
 
 \section{Conclusion}
 
-On the axis of how many items a model must emit, the grammar is not what costs
-recall. Under the pre-registered rule, unconstrained decoding shows a decline in
-$k$ and schema-constrained decoding does not. The interaction between the arms is
-real on the full sample but is carried by the $k = 1$ level, where the
-constrained arm under-emits and the study's validity gate was not met; above
-$k = 1$ the arms decline together. The arms differ in where the model stops
-rather than in what it retrieves, and the mechanism behind that difference is
-unresolved.
+On the axis of how many items a model must emit, this pilot does not find that
+the grammar costs recall, and it does not find that the grammar protects it.
+Under the pre-registered rule neither decoding regime rejects the null. The
+between-arm gap is real on the full sample and is carried by the $k = 1$ level,
+where the constrained arm under-emits and the study's validity gate was not met;
+above $k = 1$ the arms decline together. What the grammar demonstrably buys is
+validity: without it, one response in five at $k = 16$ is not valid JSON as
+emitted, and a scorer without a repair step reads those as zero recall, which is
+how an earlier version of this paper came to report a rejection it did not have.
 
-For practitioners the implication is narrower than the title suggests: on this
-model, free-form generation with post-hoc parsing, often proposed as an escape
-from grammar masking~\citep{letmespeak}, does not recover the recall it gives up
-on long lists, and costs no fewer tokens. Whether a schema actively protects
-recall at high $k$ is not settled by this study.
-For evaluation, a single $F_1$ over a benchmark whose $k$ distribution is
-unstated is not comparable across benchmarks, because it averages over a mix
-nobody reported.
+For practitioners the implication is narrower than the earlier title suggested:
+on this model, free-form generation with post-hoc parsing, often proposed as an
+escape from grammar masking~\citep{letmespeak}, costs no fewer tokens and
+produces output that must be repaired before it can be scored, and whether it
+costs recall is not settled at 25 documents per level. For evaluation, a single
+$F_1$ over a benchmark whose $k$ distribution is unstated is not comparable across
+benchmarks, because it averages over a mix nobody reported, and a tolerant parser
+is part of the instrument and has to be tested like one.
 
 \paragraph{Reproduction.} Code, pre-registration, the constructed evaluation set
 and all 450 raw model responses are released at

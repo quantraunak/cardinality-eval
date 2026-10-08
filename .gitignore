@@ -23,7 +23,7 @@ project/data/
 
 # Run outputs. docs/index.html is generated from these and is committed;
 # the runs themselves are not.
-project/reports/
+project/reports/*
 logs/
 
 # advisor web app
@@ -48,3 +48,6 @@ paper/*.aux
 paper/*.log
 paper/*.out
 paper/arxiv/
+
+# the scored result the README and paper cite
+!project/reports/decoding_result.txt
