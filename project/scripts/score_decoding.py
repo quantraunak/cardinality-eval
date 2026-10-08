@@ -16,7 +16,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import numpy as np, pandas as pd
 from src.config import PROCESSED
 from src.graph import extract, resolve
-from run_decoding_arm import parse_loose
+from run_decoding_arm import parse_loose, json_valid
 from score_cardinality import _subsumes
 
 DOCS = {d["doc_id"]: d for d in json.loads((PROCESSED / "cardinality_docs.json").read_text())}
@@ -40,6 +40,7 @@ def score(directory: Path, loose: bool) -> pd.DataFrame:
         want = {resolve.normalize(g["counterparty"]) for g in doc["gold"]}
         tp = len(got & want) + sum(1 for w in (want - got) if _subsumes(w, got - want))
         rows.append({"doc_id": path.stem, "k": doc["k_actual"], "emitted": len(got), "tp": tp,
+                     "valid": json_valid(payload["text"]),
                      "recall": tp / max(len(want), 1),
                      "precision": tp / max(len(got), 1) if got else np.nan,
                      "tokens": payload.get("eval_count", 0)})
@@ -63,10 +64,10 @@ def main() -> None:
         if frame.empty:
             continue
         print(f"=== {arm}  n={len(frame)} ===")
-        print(f"{'k':>4} {'n':>4} {'recall':>8} {'precision':>10} {'emitted':>8} {'tokens':>8}")
+        print(f"{'k':>4} {'n':>4} {'recall':>8} {'precision':>10} {'emitted':>8} {'tokens':>8} {'valid JSON':>11}")
         for k, g in frame.groupby("k"):
             print(f"{k:>4} {len(g):>4} {g.recall.mean():>8.3f} {g.precision.mean():>10.3f} "
-                  f"{g.emitted.mean():>8.1f} {g.tokens.mean():>8.0f}")
+                  f"{g.emitted.mean():>8.1f} {g.tokens.mean():>8.0f} {int(g.valid.sum()):>6}/{len(g):<4}")
         if frame.k.nunique() > 2:
             from scipy import stats
             rho = stats.spearmanr(frame.k, frame.recall)
@@ -80,13 +81,19 @@ def main() -> None:
     if len(frames) == 2:
         a = frames["constrained"].set_index("doc_id").loc[sorted(common)]
         b = frames["unconstrained"].set_index("doc_id").loc[sorted(common)]
+        from scipy import stats
         print("=== paired difference, unconstrained - constrained ===")
-        print(f"{'k':>4} {'n':>4} {'d_recall':>10} {'token ratio':>12}")
+        print(f"{'k':>4} {'n':>4} {'d_recall':>10} {'paired t p':>11} {'Wilcoxon p':>11} {'token ratio':>12}")
         for k in sorted(a.k.unique()):
             m = a.k == k
             d = (b.recall[m] - a.recall[m])
             ratio = b.tokens[m].mean() / max(a.tokens[m].mean(), 1)
-            print(f"{k:>4} {int(m.sum()):>4} {d.mean():>+10.3f} {ratio:>11.1f}x")
+            t_p = stats.ttest_rel(b.recall[m], a.recall[m]).pvalue
+            try:
+                w_p = stats.wilcoxon(d[d != 0]).pvalue if (d != 0).any() else float("nan")
+            except ValueError:
+                w_p = float("nan")
+            print(f"{k:>4} {int(m.sum()):>4} {d.mean():>+10.3f} {t_p:>11.3f} {w_p:>11.3f} {ratio:>11.1f}x")
 
 
 if __name__ == "__main__":
