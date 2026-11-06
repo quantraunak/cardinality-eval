@@ -38,6 +38,10 @@ Under a pre-registered rejection rule (a recall drop of at least 0.15 from
 $k \le 3$ to $k \ge 16$ and $p < 0.05$), neither decoding regime rejects the
 null: unconstrained recall falls 0.131 (Spearman $-0.255$, $p = 0.027$) and
 schema-constrained recall does not fall ($-0.114$, i.e.\ it rises; $p = 0.73$).
+The unconstrained decline is itself mostly a sampling effect: items recur across
+documents, the 21 items drawn at $k = 1$ are easier than the rest wherever they
+appear, and with item fixed effects the per-item unconstrained slope is $-0.006$
+per doubling ($p = 0.70$).
 An earlier version of this paper reported a 0.214 drop and a rejection for the
 unconstrained arm; six of its 75 responses had been scored as zero because the
 tolerant parser rejected valid-looking JSON containing unescaped quotation marks
@@ -47,7 +51,12 @@ doubling of $k$ ($p = 0.020$), but it is carried by $k = 1$, where the
 constrained arm emits an empty list on 13 of 25 documents; without those
 documents the interaction vanishes ($p = 0.17$). What does survive with an
 artifact is validity: the share of responses that are valid JSON as emitted
-falls with $k$ without a grammar (25/25, 23/25, 21/25) and is 75/75 under one.
+falls with $k$ without a grammar (25/25, 23/25, 21/25) and is 75/75 under one,
+as a grammar guarantees; all six failures involve the 10 of 97 bank items whose
+source sentence contains a quoted short form, so the rise with $k$ reflects more
+chances to draw one. This validity analysis was added after the data were in.
+The arms also differ in prompt and field set, so they compare two configurations
+rather than the grammar alone.
 The study's validity gate, recall of 0.80 at $k = 1$, was never met, so absolute
 recall levels are not interpretable. We also show that item count, item density
 and document length cannot be held fixed simultaneously, which determines
@@ -117,7 +126,7 @@ each naming exactly one organisation, each verified to appear verbatim in its
 source document. Filler is drawn from the same corpus with every sentence
 containing a capitalised run removed, so it cannot carry a legitimate item. A
 document is $k$ item sentences injected at uniformly random positions into
-filler, padded to a constant 9{,}000 characters. Gold is the injected set.
+filler, padded to about 9{,}000 characters (8{,}991--9{,}248). Gold is the injected set.
 
 Three properties follow: $k$ is exact, input length is constant by construction
 rather than merely uncorrelated, and position is averaged over rather than
@@ -128,7 +137,8 @@ syntactic filters for ``which sentences transplant into a synthetic document''
 were tried and all three failed, leaving recall at $k = 1$ far below any usable
 baseline. The bank is therefore defined empirically: a candidate sentence is
 retained only if the extractor recovers it at $k = 1$ in a short document. 143
-spans survive (\code{cardinality\_bank\_screened.parquet}); the number of candidates
+spans survive (\code{cardinality\_bank\_screened.parquet}), of which the 97 of at
+most 200 characters are eligible for documents; the number of candidates
 screened was not retained in a committed artifact.
 
 \paragraph{A validity gate, which was not met.} The pre-registration
@@ -218,7 +228,9 @@ Both arms use \code{qwen3:14b} at temperature 0 with a 32{,}768-token context an
 a 24{,}000-token generation ceiling, on the same 75 documents, 25 at each of
 $k \in \{1, 4, 16\}$. The constrained arm is parsed with the strict schema parser,
 since its output is grammar-guaranteed to validate. The unconstrained arm is
-prompted for JSON and parsed post hoc with a deliberately tolerant parser that
+prompted for JSON (a three-field format instruction that the constrained arm
+does not receive; the constrained schema instead requires \code{confidence} and
+permits \code{revenue\_pct}, so its output carries five fields) and parsed post hoc with a deliberately tolerant parser that
 strips reasoning blocks and code fences and scans for the last balanced object:
 a parse failure would score as a recall failure and confound the arm under test.
 That is exactly what happened in the first scoring of these runs: six of the 75
@@ -325,9 +337,19 @@ that is false for this schema, and most of the gap was the parser defect. The
 manipulation that would test a grammar-level stopping account, a
 \code{minItems} bound or a required count field, was not run.
 
-\paragraph{Cost.} Unconstrained decoding is not cheaper. It costs $1.1\times$ the
-tokens at $k = 1$ and $0.7\times$ at $k = 16$: on this model it is both less
-accurate at high $k$ and no less expensive.
+\paragraph{Cost.} Unconstrained decoding uses $1.1\times$ the tokens at $k = 1$
+and $0.7\times$ at $k = 16$, but the constrained schema requires two extra fields
+per item, so the ratio is not a cost of decoding.
+
+\paragraph{Item effects (exploratory).} Documents draw items from a 97-item bank,
+so items recur across documents and $k$ levels. Regressing per-item hit on
+$\log_2 k$ with standard errors clustered by document gives an unconstrained slope
+of $-0.035$ ($p = 0.069$); adding item fixed effects gives $-0.006$ ($p = 0.70$),
+and the constrained slope is $+0.020$ ($p = 0.27$) (\code{scripts/item\_fe.py}).
+The 21 items drawn at $k = 1$ score 0.578 unconstrained recall when they appear at
+$k \ge 4$, against 0.506 for every other item. The document-level decline in the
+unconstrained arm therefore reflects easier items at $k = 1$ more than item count.
+A rerun should cross items with $k$.
 
 \section{Scope conditions}
 
@@ -341,7 +363,9 @@ $k = 1$ by the evaluated extractor, which is one candidate explanation for the
 failed gate. Absolute recall levels are not interpretable, both for that reason
 and because the validity gate was not met. The between-arm recall contrast rests
 on $k = 1$, the level that is underpowered by the study's own arithmetic, and the
-pre-registered rule rejects for neither arm. Twenty-five documents per level and one model is a pilot
+pre-registered rule rejects for neither arm. The arms differ in prompt and field
+set as well as in grammar, and items were sampled independently at each $k$
+rather than crossed with it. Twenty-five documents per level and one model is a pilot
 scale; the next run needs at least 100 documents per level and more than one
 model family.
 
@@ -353,21 +377,20 @@ Under the pre-registered rule neither decoding regime rejects the null. The
 between-arm gap is real on the full sample and is carried by the $k = 1$ level,
 where the constrained arm under-emits and the study's validity gate was not met;
 above $k = 1$ the arms decline together. What the grammar demonstrably buys is
-validity: without it, one response in five at $k = 16$ is not valid JSON as
-emitted, and a scorer without a repair step reads those as zero recall, which is
+validity: without it, 4 of 25 responses at $k = 16$ are not valid JSON as
+emitted (Fisher $p = 0.11$ against 25/25 at that level; 69/75 against 75/75 pooled), and a scorer without a repair step reads those as zero recall, which is
 how an earlier version of this paper came to report a rejection it did not have.
 
 For practitioners the implication is narrower than the earlier title suggested:
 on this model, free-form generation with post-hoc parsing, often proposed as an
-escape from grammar masking~\citep{letmespeak}, costs no fewer tokens and
-produces output that must be repaired before it can be scored, and whether it
+escape from grammar masking~\citep{letmespeak}, produces output that must be repaired before it can be scored, and whether it
 costs recall is not settled at 25 documents per level. For evaluation, a single
 $F_1$ over a benchmark whose $k$ distribution is unstated is not comparable across
 benchmarks, because it averages over a mix nobody reported, and a tolerant parser
 is part of the instrument and has to be tested like one.
 
 \paragraph{Reproduction.} Code, pre-registration, the constructed evaluation set
-and all 450 raw model responses are released at
+and all 926 raw model responses (the 150 analysed here and earlier runs) are released at
 \url{https://github.com/quantraunak/cardinality-eval}. The reported result
 re-scores without a GPU.
 

@@ -27,7 +27,7 @@ it was pre-registered, and its status after the 2026-10-07 consistency pass. "HY
 | Zero truncations | README; paper; HYP; blog | no stop reason in cache; inferred from 903 ≪ 24,000 | control 2, HYP 2026-09-10 | consistent, now stated as inferred |
 | k=1 gate 0.80; failures 0.333, 0.400, 0.400; final 0.440 / 0.640; stop rule "no fourth iteration"; study proceeded anyway | README; paper §2, §4; HYP 2026-09-10 amendments; site; blog | HYP (record) + DR | gate added 2026-09-10 **after** the first pilot failed, recorded as such | README "four rejected builds / failed three times" was ambiguous: fixed. Site and blog said the gate was set before the first pilot: **CONTRADICTION** with HYP, fixed in the site PR |
 | 75 documents, 25 per level, k ∈ {1, 4, 16}, same documents in both arms | README; paper; site; blog | `decoding_runs/` (75 files per arm; `k_actual` = `k_intended` for all) | 2026-09-11 amendment | consistent; README's "300 documents, 60 per level" is the constructed set and now says so |
-| 300 constructed documents, 9,000 characters | README; paper | `cardinality_docs.json` (300; 8,993–8,999 chars) | length amended from 14,000 (HYP 2026-09-10) | consistent |
+| 300 constructed documents, 9,000 characters | README; paper | `cardinality_docs.json` (300; 8,991–9,248 chars) | length amended from 14,000 (HYP 2026-09-10) | consistent |
 | "143 of 240 candidates survive" screening | paper §2; README (143) | `cardinality_bank_screened.parquet` = 143; no artifact for 240; HYP 2026-09-10 records 427 first-person spans before the rebuild | — | **UNTRACEABLE (240)**: removed from the paper, README marks the pre-screen count as not retained |
 | Dilution: recall 0.667 / 0.583 / 0.417 at 1,500 / 4,000 / 14,000 filler characters; "0.25" | README ("10× range"); paper §2 table; HYP 2026-09-10; site; blog | HYP table only; run output not committed | measured 2026-09-10 | **UNTRACEABLE beyond the record**: marked in README and paper; "10×" replaced by the character range |
 | 106 documents needed at k=1 for a 0.15 difference at 80% power | README; paper; HYP | arithmetic stated in HYP (Bernoulli variance) | — | consistent (derivation) |
@@ -49,3 +49,14 @@ it was pre-registered, and its status after the 2026-10-07 consistency pass. "HY
 - Whether the k=1 gate can be met at all with a bank screened by the evaluated model: re-screen the bank with `qwen3:14b`.
 - A second model family.
 - Re-running the dilution ladder and committing its output, so the 0.667 / 0.583 / 0.417 row has an artifact.
+
+## Added 2026-11-05 (adversarial review)
+
+| Claim | Where | Artifact | Pre-registered? | Status |
+|---|---|---|---|---|
+| Item-FE unconstrained slope −0.006/doubling (p=0.70); −0.035 (p=0.069) without FE | README; paper §5 | `scripts/item_fe.py` → `paper/item_fe.txt` | no (exploratory) | consistent |
+| Arms differ in prompt (format instruction only unconstrained) and field set (constrained adds confidence, revenue_pct) | README; paper §3, scope | `run_decoding_arm.py` (JSON_INSTRUCTION), `src/graph/extract.py` (Extraction) | n/a | disclosed |
+| 4/25 invalid at k=16 (Fisher p=0.11 vs 25/25); all 6 invalid involve the 10 quote-bearing bank items | README; paper conclusion | `json_validity.txt`, cached raw text | no (added 2026-10-07) | consistent |
+| Token ratio 1.1× (k=1), 0.7× (k=16) is not a decoding cost (extra schema fields) | README; paper Cost | `decoding_result.txt` | no | corrected (was "not cheaper") |
+| 97 eligible items (MAX_SPAN=200) of 143 screened | README; paper §3 | `build_cardinality_docs.py` | n/a | corrected |
+| 926 raw responses committed (150 analysed) | README; paper | `data/processed/*_runs/` | n/a | corrected (was 450) |

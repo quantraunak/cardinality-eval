@@ -94,8 +94,9 @@ any element, and the constrained arm does stop early and emits empty lists at k=
 manipulation that would test a grammar-level stopping account (`minItems`, or a required
 count field) has not been run.
 
-Unconstrained decoding costs **1.1× the tokens at k=1 and 0.7× at k=16**, and one
-response in five at k=16 is not valid JSON as emitted.
+Unconstrained decoding uses 1.1× the tokens at k=1 and 0.7× at k=16, but the constrained schema carries two extra fields, so that ratio is not a decoding cost. 4 of 25 unconstrained responses at k=16 are not valid JSON as emitted; all six invalid responses involve the 10 bank items whose source sentence contains a quoted short form.
+
+**Item effects (exploratory, `scripts/item_fe.py`).** Items recur across documents. With item fixed effects the unconstrained per-item slope is −0.006 per doubling of k (p = 0.70), against −0.035 (p = 0.069) without: the document-level decline mostly reflects easier items drawn at k=1. The two arms also differ in prompt and field set (only the unconstrained prompt specifies the format; the constrained schema adds `confidence` and `revenue_pct`), so they compare configurations, not the grammar alone.
 
 ## Framework proposed
 
@@ -126,12 +127,12 @@ not naming the choice does not.
 | | |
 |---|---|
 | **Documents** | 300 constructed, `k` ∈ {1,2,4,8,16}, 60 per level, 9,000 chars each (`cardinality_docs.json`; `k_actual` equals `k_intended` for every document). The decoding comparison uses 75 of them: 25 at each of k ∈ {1, 4, 16} |
-| **Item bank** | 143 verbatim-validated SEC filing sentences, each carrying exactly one named counterparty, screened empirically by whether the extractor recovers them at k=1 (`cardinality_bank_screened.parquet`). The number of candidates screened was not retained in a committed artifact |
+| **Item bank** | 143 verbatim-validated SEC filing sentences (97 of them, ≤200 characters, eligible for documents), each carrying exactly one named counterparty, screened empirically by whether the extractor recovers them at k=1 (`cardinality_bank_screened.parquet`). The number of candidates screened was not retained in a committed artifact |
 | **Filler** | Relationship-dense sentences from the same corpus with every capitalised-run sentence removed |
 | **Gold** | The injected set. `k` is exact by construction; no annotation |
 | **Model** | `qwen3:14b` (dense), ollama, temperature 0, `num_ctx` 32768, `num_predict` 24000 |
 | **Also run** | `qwen3:30b-a3b` constrained on all 300 documents (cells A, C, D in `cardinality_runs/`, retained but not used for any reported number) and `qwen3:30b-a3b` unconstrained (`decoding_runs/qwen3_30b-a3b_unconstrained`, discarded as context-bound; see the 2026-09-14 amendment) |
-| **Committed** | Evaluation set, screened bank, and all 450 raw model responses, so the result re-scores without a GPU |
+| **Committed** | Evaluation set, screened bank, and all 926 raw model responses (150 analysed, plus earlier runs), so the result re-scores without a GPU |
 
 ## Limitations
 
