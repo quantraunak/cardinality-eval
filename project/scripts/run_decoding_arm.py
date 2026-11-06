@@ -32,6 +32,53 @@ JSON_INSTRUCTION = (
 OBJECT = re.compile(r"\{.*\}", re.S)
 
 
+def repair_quotes(candidate: str):
+    """Escape unescaped double quotes inside JSON string values and re-parse.
+
+    The model copies a filing's own short form verbatim, e.g.
+    ``Express Scripts, Inc. ("Express Scripts")``, which is not valid JSON and
+    made the whole response score as zero links. A quote inside a string is
+    treated as interior when the next non-space character is not one of
+    ``, } ] :`` (the only characters that can legally follow a closing quote).
+    Fails closed: returns None unless the repaired text parses as JSON.
+    Added 2026-10-07; six of the 75 cached unconstrained responses needed it.
+    """
+    out, in_str, i, n = [], False, 0, len(candidate)
+    while i < n:
+        ch = candidate[i]
+        if in_str:
+            if ch == "\\":
+                out.append(candidate[i:i + 2]); i += 2; continue
+            if ch == '"':
+                j = i + 1
+                while j < n and candidate[j] in " \t\r\n":
+                    j += 1
+                if j < n and candidate[j] in ",}]:":
+                    in_str = False
+                else:
+                    out.append('\\"'); i += 1; continue
+        elif ch == '"':
+            in_str = True
+        out.append(ch); i += 1
+    try:
+        return json.loads("".join(out))
+    except json.JSONDecodeError:
+        return None
+
+
+def json_valid(text: str) -> bool:
+    """True if the response body (reasoning stripped) is valid JSON as emitted,
+    with no repair. Used to report validity by level."""
+    if not text:
+        return False
+    body = text.rsplit("</think>", 1)[-1]
+    body = re.sub(r"^```(?:json)?|```$", "", body.strip(), flags=re.M).strip()
+    try:
+        return isinstance(json.loads(body), dict)
+    except json.JSONDecodeError:
+        return False
+
+
 def parse_loose(text: str) -> list[dict]:
     """Post-hoc parse of free-form output. Deliberately tolerant: a parse failure
     here would score as a recall failure and confound the arm under test.
@@ -50,7 +97,10 @@ def parse_loose(text: str) -> list[dict]:
         try:
             payload = json.loads(candidate)
         except json.JSONDecodeError:
-            return None
+            repaired = repair_quotes(candidate)
+            if repaired is None:
+                return None
+            payload = repaired
         if not isinstance(payload, dict):
             return None
         found = payload.get("links", [])

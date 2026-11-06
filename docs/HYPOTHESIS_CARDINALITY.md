@@ -447,6 +447,24 @@ document on the 14B costs 448 tokens against 752 constrained, a ratio below one.
 Both arms complete, `qwen3:14b` at `num_ctx` 32,768, 75 documents each, matched.
 Zero truncations, maximum 686 tokens against a 24,000 ceiling.
 
+> **Correction, 2026-10-07.** 686 is the mean `eval_count` at `k=16` in the constrained
+> arm, not a maximum. The longest cached response is 903 tokens (constrained) and 642
+> (unconstrained). No stop reason is stored in the cache; "zero truncations" is inferred
+> from that margin against the 24,000 ceiling. See `docs/CLAIMS.md`.
+
+> **Correction, 2026-10-07 (scoring).** Six of the 75 unconstrained responses (two at
+> `k=4`, four at `k=16`) are complete objects ending in `}]}` whose string values contain
+> unescaped quotation marks copied from the filings. `parse_loose` scored all six as zero
+> links; they carry 39 links, 38 matching gold. The scorer now repairs interior quotes and
+> re-parses, failing closed. Re-scored from the same cache: unconstrained recall
+> 0.640 / 0.580 / 0.509, drop 0.131, Spearman −0.255, p = 0.027, which **does not meet the
+> rule above** (drop ≥ 0.15 and p < 0.05). The constrained arm is unchanged. The sentence
+> "Cardinality degrades extraction recall only when decoding is unconstrained" is
+> withdrawn. The surviving measured difference is validity: unconstrained responses are
+> valid JSON as emitted 25/25, 23/25, 21/25 by level; constrained 75/75. Interaction after
+> the repair: slope −0.061 per doubling (p = 0.020), vanishing without the 13
+> constrained-empty `k=1` documents (p = 0.17).
+
 | k | constrained recall | unconstrained recall | paired diff | p |
 |---|---|---|---|---|
 | 1 | 0.440 | 0.640 | +0.200 | 0.096 |
